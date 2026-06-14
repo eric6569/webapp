@@ -145,7 +145,7 @@
   <div id="status">📷 等待啟動…</div>
   <div id="bigReadout"></div>
   <div id="dbg"></div>
-  <div id="version">v0.7.7</div>
+  <div id="version">v0.7.8</div>
   <button id="startBtn">▶ 開啟後鏡頭</button>
   <div id="error"></div>
   <button id="gearBtn">⚙</button>
@@ -222,6 +222,16 @@
         <span class="val" id="vGap">2000</span>
       </div>
       <div class="row">
+        <label>R²門檻</label>
+        <input type="range" id="thR2" min="0" max="0.9" step="0.05" value="0.4">
+        <span class="val" id="vR2">0.4</span>
+      </div>
+      <div class="row">
+        <label>最小位移px</label>
+        <input type="range" id="thDxMin" min="1" max="80" value="10">
+        <span class="val" id="vDxMin">10</span>
+      </div>
+      <div class="row">
         <label>出手門檻km/h</label>
         <input type="range" id="thThrow" min="5" max="60" value="15">
         <span class="val" id="vThrow">15</span>
@@ -273,6 +283,10 @@
     const vFps     = document.getElementById('vFps');
     const thGap    = document.getElementById('thGap');
     const vGap     = document.getElementById('vGap');
+    const thR2     = document.getElementById('thR2');
+    const vR2      = document.getElementById('vR2');
+    const thDxMin  = document.getElementById('thDxMin');
+    const vDxMin   = document.getElementById('vDxMin');
     const thThrow  = document.getElementById('thThrow');
     const vThrow   = document.getElementById('vThrow');
     const voiceOn  = document.getElementById('voiceOn');
@@ -302,13 +316,15 @@
     function estimateSpeed(s){
       const n = s.length;
       if (n < 2) return { valid:false, n };
+      const r2Min = +(thR2.value) || 0.4;
+      const dxMin = +(thDxMin.value) || 10;
       const t0 = s[0].t;
       const span = (s[n-1].t - t0)/1000;
       const dxPx = s[n-1].cx - s[0].cx;
       if (n === 2){
         const slopePx = span>0 ? dxPx/span : 0;
         let reason='';
-        if (Math.abs(dxPx)<3) reason='移動太小';
+        if (Math.abs(dxPx)<dxMin) reason='移動太小';
         else if (span<0.02) reason='時間太短';
         else if (!pxPerMeter) reason='未校正';
         const ms = pxPerMeter ? Math.abs(slopePx)/pxPerMeter : 0;
@@ -324,8 +340,8 @@
       for (const p of s){ const x=(p.t-t0)/1000, y=p.cx; const f=slopePx*x+intercept; ssRes+=(y-f)*(y-f); ssTot+=(y-my)*(y-my); }
       const r2 = ssTot>0 ? 1 - ssRes/ssTot : 0;
       let reason='';
-      if (Math.abs(dxPx)<3) reason='移動太小';
-      else if (r2<0.4) reason='不線性';
+      if (Math.abs(dxPx)<dxMin) reason='移動太小';
+      else if (r2<r2Min) reason='不線性';
       else if (span<0.03) reason='時間太短';
       else if (!pxPerMeter) reason='未校正';
       const ms = pxPerMeter ? Math.abs(slopePx)/pxPerMeter : 0;
@@ -357,7 +373,7 @@
     bind(thMin,vMin); bind(thMax,vMax);
     // 處理解析度變更時同步 proc canvas
     thProc.addEventListener('input', syncSize);
-    bind(thFps,vFps); bind(thGap,vGap); bind(thThrow,vThrow);
+    bind(thFps,vFps); bind(thGap,vGap); bind(thR2,vR2); bind(thDxMin,vDxMin); bind(thThrow,vThrow);
 
     // ---- 設定持久化 ----
     const LS_KEY = 'ballspeed_settings_v3';
@@ -367,7 +383,8 @@
           mode, pxPerMeter, calibDist: calibDist.value,
           thMot:thMot.value, thBright:thBright.value, thSat:thSat.value,
           thProc:thProc.value, thMin:thMin.value, thMax:thMax.value,
-          thFps:thFps.value, thGap:thGap.value, thThrow:thThrow.value
+          thFps:thFps.value, thGap:thGap.value,
+          thR2:thR2.value, thDxMin:thDxMin.value, thThrow:thThrow.value
         }));
       } catch(e){}
     }
@@ -377,7 +394,8 @@
       const set=(el,lab,v)=>{ if(v!=null){ el.value=v; if(lab)lab.textContent=v; } };
       set(thMot,vMot,s.thMot); set(thBright,vBright,s.thBright); set(thSat,vSat,s.thSat);
       set(thProc,vProc,s.thProc); set(thMin,vMin,s.thMin); set(thMax,vMax,s.thMax);
-      set(thFps,vFps,s.thFps); set(thGap,vGap,s.thGap); set(thThrow,vThrow,s.thThrow);
+      set(thFps,vFps,s.thFps); set(thGap,vGap,s.thGap);
+      set(thR2,vR2,s.thR2); set(thDxMin,vDxMin,s.thDxMin); set(thThrow,vThrow,s.thThrow);
       if(s.calibDist!=null) calibDist.value=s.calibDist;
       if(s.pxPerMeter){ pxPerMeter=s.pxPerMeter; calibState.textContent=`✓ ${pxPerMeter.toFixed(1)}px/m`; }
       if(s.mode){ mode=s.mode; applyMode(); }
