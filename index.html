@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>棒球測速器 ⚾</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%; background: #000; overflow: hidden;
+      font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: #fff;
+    }
+    #stage { position: fixed; inset: 0; }
+    #cam, #overlay {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    #cam { background: #000; }
+    #overlay { pointer-events: none; }
+
+    #status {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 10px 14px; font-size: 14px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
+      z-index: 10; pointer-events: none; white-space: pre-line;
+    }
+    #startBtn {
+      position: fixed; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 18px 36px; font-size: 20px; font-weight: bold;
+      color: #fff; background: #e63946; border: none; border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(230,57,70,.5);
+      z-index: 20; cursor: pointer;
+    }
+    #startBtn:active { transform: translate(-50%, -50%) scale(.96); }
+    #startBtn:disabled { background: #888; box-shadow: none; }
+    #error {
+      position: fixed; left: 50%; top: 60%; transform: translateX(-50%);
+      width: 86%; max-width: 420px; padding: 14px 16px;
+      font-size: 14px; line-height: 1.6; color: #ffd9d9;
+      background: rgba(120,0,0,.85); border-radius: 12px;
+      z-index: 30; display: none; white-space: pre-wrap;
+    }
+    /* 控制面板 */
+    #panel {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 10px 14px 16px;
+      background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,0));
+      z-index: 15; display: none;
+      font-size: 13px;
+    }
+    #panel.show { display: block; }
+    .row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+    .row label { width: 88px; flex: none; }
+    .row input[type=range] { flex: 1; }
+    .row .val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+    .row.chk { gap: 6px; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <video  id="cam" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <div id="status">📷 等待啟動…</div>
+  <button id="startBtn">▶ 開啟後鏡頭</button>
+  <div id="error"></div>
+
+  <div id="panel">
+    <div class="row" style="gap:8px">
+      <button id="motionBtn" style="flex:1;padding:8px;border:none;border-radius:8px;background:#e76f51;color:#fff;font-weight:bold">🏃 動態偵測（實際用）</button>
+    </div>
+    <div class="row" style="gap:8px">
+      <button id="pickBtn" style="flex:1;padding:8px;border:none;border-radius:8px;background:#2a9d8f;color:#fff;font-weight:bold">🎯 點球鎖定顏色</button>
+      <button id="resetBtn" style="flex:none;padding:8px 12px;border:none;border-radius:8px;background:#555;color:#fff">改用亮度</button>
+    </div>
+    <div id="rowMotion" class="row" style="display:none">
+      <label>移動靈敏度</label>
+      <input type="range" id="thMot" min="8" max="80" value="25">
+      <span class="val" id="vMot">25</span>
+    </div>
+    <div id="rowBright" class="row">
+      <label>亮度門檻</label>
+      <input type="range" id="thBright" min="120" max="255" value="200">
+      <span class="val" id="vBright">200</span>
+    </div>
+    <div id="rowSat" class="row">
+      <label>飽和度上限</label>
+      <input type="range" id="thSat" min="0" max="150" value="60">
+      <span class="val" id="vSat">60</span>
+    </div>
+    <div id="rowTol" class="row" style="display:none">
+      <label>顏色容差</label>
+      <input type="range" id="thTol" min="20" max="240" value="90">
+      <span class="val" id="vTol">90</span>
+    </div>
+    <div class="row">
+      <label>最小尺寸(px)</label>
+      <input type="range" id="thMin" min="2" max="40" value="6">
+      <span class="val" id="vMin">6</span>
+    </div>
+    <div class="row">
+      <label>最大尺寸(px)</label>
+      <input type="range" id="thMax" min="20" max="320" value="120">
+      <span class="val" id="vMax">120</span>
+    </div>
+    <div class="row">
+      <label>偵測範圍%</label>
+      <input type="range" id="thRoi" min="20" max="100" value="45">
+      <span class="val" id="vRoi">45</span>
+    </div>
+    <div class="row chk">
+      <input type="checkbox" id="showMask">
+      <label for="showMask" style="width:auto">顯示偵測遮罩（除錯用）</label>
+    </div>
+  </div>
+
+  <script>
+    const video    = document.getElementById('cam');
+    const overlay  = document.getElementById('overlay');
+    const ctx      = overlay.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const errorEl  = document.getElementById('error');
+    const panel    = document.getElementById('panel');
+
+    // 控制元件
+    const thBright = document.getElementById('thBright');
+    const thSat    = document.getElementById('thSat');
+    const thMin    = document.getElementById('thMin');
+    const thMax    = document.getElementById('thMax');
+    const thRoi    = document.getElementById('thRoi');
+    const thTol    = document.getElementById('thTol');
+    const showMask = document.getElementById('showMask');
+    const vBright  = document.getElementById('vBright');
+    const vSat     = document.getElementById('vSat');
+    const vMin     = document.getElementById('vMin');
+    const vMax     = document.getElementById('vMax');
+    const vRoi     = document.getElementById('vRoi');
+    const vTol     = document.getElementById('vTol');
+    const thMot    = document.getElementById('thMot');
+    const vMot     = document.getElementById('vMot');
+    const pickBtn  = document.getElementById('pickBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const motionBtn= document.getElementById('motionBtn');
+    const rowBright= document.getElementById('rowBright');
+    const rowSat   = document.getElementById('rowSat');
+    const rowTol   = document.getElementById('rowTol');
+    const rowMotion= document.getElementById('rowMotion');
+    thMot.oninput  = () => vMot.textContent = thMot.value;
+    thBright.oninput = () => vBright.textContent = thBright.value;
+    thSat.oninput    = () => vSat.textContent    = thSat.value;
+    thMin.oninput    = () => vMin.textContent    = thMin.value;
+    thMax.oninput    = () => vMax.textContent    = thMax.value;
+    thRoi.oninput    = () => vRoi.textContent    = thRoi.value;
+    thTol.oninput    = () => vTol.textContent    = thTol.value;
+
+    // 偵測模式：'bright' 亮度 / 'color' 鎖定顏色
+    let mode = 'bright';
+    let targetColor = null;       // {r,g,b}
+    let pickMode = false;         // 等待使用者點球
+
+    pickBtn.addEventListener('click', () => {
+      pickMode = true;
+      pickBtn.textContent = '👆 請點畫面中的球…';
+    });
+    resetBtn.addEventListener('click', () => {
+      mode='bright'; targetColor=null;
+      rowBright.style.display='flex'; rowSat.style.display='flex';
+      rowTol.style.display='none'; rowMotion.style.display='none';
+      pickBtn.textContent='🎯 點球鎖定顏色';
+    });
+    motionBtn.addEventListener('click', () => {
+      mode='motion';
+      rowBright.style.display='none'; rowSat.style.display='none';
+      rowTol.style.display='none'; rowMotion.style.display='flex';
+    });
+
+    // 點畫面取色（換算 object-fit:cover 座標 → proc 像素）
+    document.getElementById('stage').addEventListener('click', (ev) => {
+      if (!pickMode || !video.videoWidth) return;
+      const elW=overlay.clientWidth, elH=overlay.clientHeight;
+      const vw=video.videoWidth, vh=video.videoHeight;
+      const scale=Math.max(elW/vw, elH/vh);
+      const offX=(elW-vw*scale)/2, offY=(elH-vh*scale)/2;
+      const vidX=(ev.clientX-offX)/scale, vidY=(ev.clientY-offY)/scale;
+      const px=Math.round(vidX*proc.width/vw), py=Math.round(vidY*proc.height/vh);
+      pctx.drawImage(video,0,0,proc.width,proc.height);
+      // 取點擊處 5×5 平均色，較穩定
+      let r=0,g=0,b=0,n=0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const x=px+dx,y=py+dy;
+        if(x<0||y<0||x>=proc.width||y>=proc.height)continue;
+        const d=pctx.getImageData(x,y,1,1).data;
+        r+=d[0];g+=d[1];b+=d[2];n++;
+      }
+      if(n>0){
+        targetColor={r:r/n,g:g/n,b:b/n};
+        mode='color'; pickMode=false;
+        rowBright.style.display='none'; rowSat.style.display='none'; rowTol.style.display='flex';
+        pickBtn.textContent=`✓ 已鎖定 rgb(${targetColor.r|0},${targetColor.g|0},${targetColor.b|0})`;
+      }
+    });
+
+    let stream = null, running = false, lastT = performance.now();
+    let prevGray = null, motionBuf = null;   // 動態偵測用的前後幀灰階緩衝
+
+    // 離螢幕處理用 canvas（降解析度加速）
+    const PROC_W = 320;
+    let PROC_H = 180;
+    const proc = document.createElement('canvas');
+    const pctx = proc.getContext('2d', { willReadFrequently: true });
+
+    function setStatus(t){ statusEl.textContent = t; }
+    function showError(m){ errorEl.style.display='block'; errorEl.textContent='⚠ '+m; }
+
+    // ---- 開鏡頭 ----
+    async function startCamera() {
+      errorEl.style.display='none';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showError('此瀏覽器無法存取鏡頭。\n請用 HTTPS（GitHub Pages）或 localhost，手機勿用區網 IP。');
+        return;
+      }
+      startBtn.disabled = true; setStatus('📷 啟動鏡頭中…');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: 'environment' } }, audio: false });
+      } catch (e1) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }, audio: false });
+        } catch (e2) { handleCameraError(e2); return; }
+      }
+      video.srcObject = stream;
+      await video.play();
+      startBtn.style.display='none';
+      panel.classList.add('show');
+
+      await waitForVideoReady();
+      syncSize();
+      window.addEventListener('resize', syncSize);
+
+      running = true;
+      setStatus('✅ 偵測中…');
+      detectLoop();
+    }
+
+    function waitForVideoReady(){
+      return new Promise(r=>{
+        if (video.readyState>=2 && video.videoWidth) return r();
+        video.onloadedmetadata = ()=>r();
+      });
+    }
+
+    function syncSize(){
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw||!vh) return;
+      overlay.width = vw; overlay.height = vh;          // 疊圖用影像原始座標
+      PROC_H = Math.round(PROC_W * vh / vw);
+      proc.width = PROC_W; proc.height = PROC_H;
+    }
+
+    // ---- 偵測迴圈：找白色圓形 blob ----
+    const visited = new Uint8Array(PROC_W * 1080); // 上限緩衝（之後依實際大小用）
+    function detectLoop(){
+      if (!running) return;
+      const ball = detectBall();
+      draw(ball);
+      requestAnimationFrame(detectLoop);
+    }
+
+    function detectBall(){
+      const W = proc.width, H = proc.height, N = W*H;
+      pctx.drawImage(video, 0, 0, W, H);
+      const data = pctx.getImageData(0, 0, W, H).data;
+
+      const TB = +thBright.value;   // 亮度下限
+      const TS = +thSat.value;      // 飽和度上限（越小越「純白」）
+
+      // 中央偵測框（ROI）：框外像素一律忽略
+      const roi = +thRoi.value/100;
+      const rx0 = Math.floor(W*(1-roi)/2), rx1 = Math.ceil(W*(1+roi)/2);
+      const ry0 = Math.floor(H*(1-roi)/2), ry1 = Math.ceil(H*(1+roi)/2);
+
+      const TOL = +thTol.value;     // 顏色容差
+      const MT  = +thMot.value;     // 移動靈敏度（灰階差門檻）
+      const useColor  = (mode==='color' && targetColor);
+      const useMotion = (mode==='motion');
+      const tr=useColor?targetColor.r:0, tg=useColor?targetColor.g:0, tb=useColor?targetColor.b:0;
+
+      // 動態模式：本幀灰階緩衝（與 prevGray 比較後互換）
+      let gray = null;
+      if (useMotion){
+        gray = (motionBuf && motionBuf.length===N) ? motionBuf : new Uint8Array(N);
+      }
+
+      // 建立遮罩（僅限 ROI 內）
+      const mask = new Uint8Array(N);
+      for (let y=ry0;y<ry1;y++){
+        for (let x=rx0;x<rx1;x++){
+          const i=y*W+x;
+          const r=data[i*4], g=data[i*4+1], b=data[i*4+2];
+          if (useMotion){
+            const gv=(r*0.299+g*0.587+b*0.114)|0;
+            if (prevGray && prevGray.length===N && Math.abs(gv-prevGray[i])>MT) mask[i]=1;
+            gray[i]=gv;
+          } else if (useColor){
+            const dist=Math.abs(r-tr)+Math.abs(g-tg)+Math.abs(b-tb);
+            if (dist<=TOL) mask[i]=1;
+          } else {
+            const max=Math.max(r,g,b), min=Math.min(r,g,b);
+            if (max>=TB && (max-min)<=TS) mask[i]=1;
+          }
+        }
+      }
+      // 換手：本幀灰階成為下一幀的 prevGray
+      if (useMotion){ motionBuf = prevGray; prevGray = gray; }
+
+      // 連通元件（BFS），找最大且夠圓的 blob
+      const vis = (N<=visited.length) ? visited : new Uint8Array(N);
+      vis.fill(0, 0, N);
+      const stack = new Int32Array(N);
+      const minPx = +thMin.value;
+      const maxPx = +thMax.value;
+      let best = null, bestScore = -1;
+
+      for (let s=0;s<N;s++){
+        if (!mask[s] || vis[s]) continue;
+        let sp=0; stack[sp++]=s; vis[s]=1;
+        let area=0, minX=W,maxX=0,minY=H,maxY=0, sumX=0,sumY=0;
+        while (sp>0){
+          const p=stack[--sp];
+          const x=p%W, y=(p/W)|0;
+          area++; sumX+=x; sumY+=y;
+          if(x<minX)minX=x; if(x>maxX)maxX=x;
+          if(y<minY)minY=y; if(y>maxY)maxY=y;
+          // 4 鄰居
+          if(x>0   && mask[p-1] && !vis[p-1]){vis[p-1]=1; stack[sp++]=p-1;}
+          if(x<W-1 && mask[p+1] && !vis[p+1]){vis[p+1]=1; stack[sp++]=p+1;}
+          if(y>0   && mask[p-W] && !vis[p-W]){vis[p-W]=1; stack[sp++]=p-W;}
+          if(y<H-1 && mask[p+W] && !vis[p+W]){vis[p+W]=1; stack[sp++]=p+W;}
+        }
+        const bw=maxX-minX+1, bh=maxY-minY+1;
+        if (bw<minPx || bh<minPx) continue;
+        if (bw>maxPx || bh>maxPx) continue;          // 淘汰過大的背景區塊（牆/燈）
+        // 圓形度：blob 面積 / 外接框面積（圓約 0.785，越接近越圓）
+        const fill = area/(bw*bh);
+        const aspect = bw>bh ? bw/bh : bh/bw;
+        // 動態模式：移動殘影會拉長變形，放寬圓形限制
+        const fillMin = useMotion ? 0.35 : 0.6;
+        const aspMax  = useMotion ? 3.0  : 1.4;
+        if (fill < fillMin || aspect > aspMax) continue;
+        // 選「最圓」而非「最大」：越接近 0.785 且越方正分數越高
+        const circ = (1 - Math.abs(fill - 0.785)) / aspect;
+        if (circ > bestScore){
+          bestScore = circ;
+          best = { cx:sumX/area, cy:sumY/area, bw, bh, area, fill,
+                   diam:(bw+bh)/2 };
+        }
+      }
+      return { best, mask, W, H, roi:{rx0,ry0,rx1,ry1} };
+    }
+
+    function draw(res){
+      const sx = overlay.width / res.W;   // proc → overlay 座標縮放
+      const sy = overlay.height / res.H;
+      ctx.clearRect(0,0,overlay.width,overlay.height);
+
+      // 除錯遮罩
+      if (showMask.checked){
+        const img = ctx.createImageData(res.W, res.H);
+        for (let i=0;i<res.W*res.H;i++){
+          const v = res.mask[i]?255:0;
+          img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=0; img.data[i*4+3]=v?140:0;
+        }
+        // 放到角落小窗
+        const tmp = document.createElement('canvas');
+        tmp.width=res.W; tmp.height=res.H;
+        tmp.getContext('2d').putImageData(img,0,0);
+        ctx.drawImage(tmp, 0,0, overlay.width, overlay.height);
+      }
+
+      // 中央偵測框指引線（虛線）
+      const R=res.roi;
+      ctx.lineWidth=2; ctx.setLineDash([12,10]); ctx.strokeStyle='rgba(255,255,255,.7)';
+      ctx.strokeRect(R.rx0*sx, R.ry0*sy, (R.rx1-R.rx0)*sx, (R.ry1-R.ry0)*sy);
+      ctx.setLineDash([]);
+
+      const now=performance.now(), fps=1000/(now-lastT); lastT=now;
+
+      if (res.best){
+        const b=res.best;
+        const cx=b.cx*sx, cy=b.cy*sy;
+        const rpx=(b.diam*((sx+sy)/2))/2;
+        ctx.lineWidth=6; ctx.strokeStyle='#39ff14';
+        ctx.beginPath(); ctx.arc(cx,cy,rpx,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle='#39ff14';
+        ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+        const diamOverlay = b.diam*((sx+sy)/2);
+        ctx.font='bold 26px sans-serif';
+        const label=`⚾ 直徑 ${diamOverlay.toFixed(0)}px`;
+        ctx.fillStyle='#39ff14';
+        ctx.fillText(label, cx+rpx+8, cy);
+        setStatus(`✅ 偵測中　${fps.toFixed(0)} fps\n⚾ 球像素直徑 ${diamOverlay.toFixed(0)}px　圓形度 ${(b.fill).toFixed(2)}`);
+      } else {
+        setStatus(`✅ 偵測中　${fps.toFixed(0)} fps\n🔍 未找到白色圓形（調整下方亮度門檻試試）`);
+      }
+    }
+
+    function handleCameraError(err){
+      let msg;
+      switch(err&&err.name){
+        case 'NotAllowedError': msg='鏡頭權限被拒絕。請允許鏡頭後重新整理。'; break;
+        case 'NotFoundError': msg='找不到鏡頭裝置。'; break;
+        case 'NotReadableError': msg='鏡頭被其他 App 佔用。'; break;
+        case 'OverconstrainedError': msg='此裝置不支援後鏡頭要求。'; break;
+        default: msg='無法開啟鏡頭：'+(err&&err.message?err.message:err);
+      }
+      showError(msg); setStatus('❌ 鏡頭開啟失敗');
+      startBtn.disabled=false; startBtn.style.display='block';
+    }
+
+    startBtn.addEventListener('click', startCamera);
+  </script>
+</body>
+</html>
