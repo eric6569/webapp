@@ -9,8 +9,8 @@
 
   body {
     min-height: 100vh;
-    background: linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 100%);
-    color: #eee;
+    background: #000;
+    color: #b0b0b0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     display: flex;
     justify-content: center;
@@ -25,7 +25,6 @@
     align-items: center;
   }
 
-  /* Header */
   .header {
     display: flex;
     align-items: center;
@@ -37,11 +36,10 @@
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 4px;
-    color: #ffaa00;
+    color: #e0e0e0;
     text-transform: uppercase;
   }
 
-  /* Status bar */
   .status-bar {
     display: flex;
     align-items: center;
@@ -49,71 +47,86 @@
     gap: 12px;
     margin-bottom: 16px;
     font-size: 12px;
+    color: #707070;
   }
   .status-dot {
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    background: #444;
+    background: #404040;
     margin-right: 5px;
     vertical-align: middle;
   }
   .status-dot.running {
-    background: #00ff88;
-    box-shadow: 0 0 8px #00ff88;
+    background: #66dd44;
+    box-shadow: 0 0 8px #66dd44;
     animation: pulse 1.5s infinite;
   }
-  .status-dot.paused { background: #ffaa00; }
-  .status-label { color: #666; }
-  .status-label.running { color: #00ff88; }
-  .status-label.paused { color: #ffaa00; }
-  .status-sep { color: #555; }
-  .gps-status { font-size: 11px; color: #666; }
-  .gps-status.active { color: #00ff88; }
-  .gps-status.simulating { color: #ffaa00; }
+  .status-dot.paused { background: #ccaa33; }
+  .status-running { color: #aaa; }
+  .status-paused { color: #ccaa33; }
+  .gps-active { color: #aaa; }
+  .gps-sim { color: #ccaa33; }
 
-  /* Fare display */
-  .fare-panel {
-    background: linear-gradient(180deg, #0a0a16 0%, #12122a 100%);
-    border: 1px solid #2a2a44;
-    border-radius: 16px;
-    padding: 28px 32px 20px;
+  /* LCD Panel */
+  .lcd-panel {
+    background: #8aad32;
+    border: 3px solid #5a7a22;
+    border-radius: 14px;
+    padding: 22px 24px 18px;
     width: 100%;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
-    text-align: center;
+    margin-bottom: 14px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
   }
-  .fare-label {
+  .lcd-panel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+  }
+  .lcd-label {
     font-size: 11px;
-    color: #7777aa;
+    color: #3a5518;
     letter-spacing: 2px;
-    margin-bottom: 12px;
-  }
-  .fare-value {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-  }
-  .fare-currency {
-    font-size: 20px;
-    color: rgba(0,255,136,0.4);
-    margin-right: 6px;
+    margin-bottom: 10px;
+    text-align: center;
     font-weight: 600;
   }
-  .fare-digits {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 56px;
-    font-weight: 700;
-    color: #00ff88;
-    text-shadow: 0 0 12px rgba(0,255,136,0.5), 0 0 24px rgba(0,255,136,0.2);
-    letter-spacing: 2px;
-    line-height: 1;
+
+  /* Seven-segment */
+  .seg-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
   }
+  .seg-currency {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(26,40,10,0.4);
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+  .seg-digit {
+    position: relative;
+    display: inline-block;
+  }
+  .seg {
+    position: absolute;
+    border-radius: 1.5px;
+  }
+  .seg.on { background: #1a2c0a; }
+  .seg.off { background: #1a2c0a; opacity: 0.07; }
+
   .night-badge {
-    margin-top: 10px;
+    text-align: center;
+    margin-top: 8px;
     font-size: 11px;
-    color: #ff6644;
+    color: #3a2208;
+    font-weight: 600;
     display: none;
   }
   .night-badge.visible { display: block; }
@@ -122,66 +135,68 @@
   .stats-row {
     display: flex;
     width: 100%;
-    background: #12122a;
-    border: 1px solid #2a2a44;
-    border-radius: 12px;
-    margin-bottom: 16px;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-lcd {
+    flex: 1;
+    background: #8aad32;
+    border: 2px solid #5a7a22;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.3);
+    position: relative;
     overflow: hidden;
   }
-  .stat-block {
-    flex: 1;
-    text-align: center;
-    padding: 12px 4px;
+  .stat-lcd::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
   }
   .stat-label {
-    font-size: 11px;
-    color: #7777aa;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    font-size: 10px;
+    color: #3a5518;
+    letter-spacing: 1px;
     margin-bottom: 6px;
+    font-weight: 600;
   }
-  .stat-value {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.1;
+  .stat-digits {
+    display: flex;
+    justify-content: center;
+    gap: 1px;
+    margin-bottom: 3px;
   }
-  .stat-value.distance { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.25); }
-  .stat-value.time { color: #cc88ff; text-shadow: 0 0 8px rgba(204,136,255,0.25); }
-  .stat-value.speed { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.25); }
-  .stat-value.speed.waiting { color: #ff6644; text-shadow: 0 0 8px rgba(255,102,68,0.25); }
   .stat-unit {
-    font-size: 11px;
-    color: #7777aa;
-    margin-top: 4px;
-  }
-  .stat-sep {
-    width: 1px;
-    background: #2a2a44;
-    margin: 10px 0;
+    font-size: 10px;
+    color: #3a5518;
+    font-weight: 600;
   }
 
-  /* Wait time bar */
+  /* Wait bar */
   .wait-bar {
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #12122a;
-    border: 1px solid #2a2a44;
-    border-radius: 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
     padding: 10px 16px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     font-size: 13px;
   }
-  .wait-label { color: #7777aa; }
+  .wait-label { color: #888; }
   .wait-value {
     font-family: 'Courier New', monospace;
-    font-weight: 600;
-    color: #444;
+    font-weight: 700;
+    color: #555;
+    font-size: 15px;
   }
-  .wait-value.active { color: #ff6644; }
-  .wait-fare { color: #7777aa; font-size: 11px; }
+  .wait-value.active { color: #ddd; }
+  .wait-fare { color: #888; font-size: 11px; }
 
   /* Buttons */
   .controls {
@@ -198,26 +213,26 @@
     border: none;
     border-radius: 12px;
     cursor: pointer;
-    transition: transform 0.1s, opacity 0.15s;
+    transition: transform 0.1s;
     -webkit-tap-highlight-color: transparent;
   }
   .btn:active { transform: scale(0.97); }
   .btn-start {
-    background: linear-gradient(135deg, #00cc66 0%, #00aa55 100%);
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(0,204,102,0.3);
+    background: linear-gradient(135deg, #e0e0e0 0%, #bbb 100%);
+    color: #111;
+    box-shadow: 0 4px 16px rgba(255,255,255,0.1);
   }
   .btn-pause {
     background: transparent;
-    border: 1px solid #ffaa00;
-    color: #ffaa00;
+    border: 2px solid #ccaa33;
+    color: #ccaa33;
   }
   .btn-stop {
     background: transparent;
-    border: 1px solid #ff4444;
-    color: #ff4444;
+    border: 2px solid #cc4444;
+    color: #cc4444;
   }
-  .btn.hidden { display: none; }
+  .hidden { display: none !important; }
 
   /* Night toggle */
   .night-toggle {
@@ -226,62 +241,55 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: #12122a;
-    border: 1px solid #2a2a44;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    margin-bottom: 16px;
   }
   .night-toggle-label { font-size: 13px; color: #aaa; }
   .toggle-track {
-    width: 48px;
-    height: 26px;
+    width: 48px; height: 26px;
     border-radius: 13px;
     border: none;
     cursor: pointer;
     background: #333;
     position: relative;
     transition: background 0.2s;
-    -webkit-tap-highlight-color: transparent;
   }
-  .toggle-track.on { background: #00cc66; }
+  .toggle-track.on { background: #ccaa33; }
   .toggle-thumb {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 20px;
-    height: 20px;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
     border-radius: 50%;
-    background: #fff;
+    background: #e0e0e0;
     transition: left 0.2s;
     pointer-events: none;
   }
   .toggle-track.on .toggle-thumb { left: 25px; }
 
-  /* Fare rules */
   .fare-rules {
     width: 100%;
     padding: 14px 16px;
-    background: #12122a;
-    border: 1px solid #2a2a44;
-    border-radius: 12px;
-    margin-bottom: 20px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    margin-bottom: 16px;
     font-size: 11px;
-    color: #666;
+    color: #777;
     line-height: 1.8;
   }
   .fare-rules-title {
-    color: #888;
+    color: #aaa;
     font-weight: 600;
     margin-bottom: 4px;
     font-size: 12px;
   }
 
-  /* History */
-  .history { width: 100%; margin-bottom: 20px; }
-  .history.hidden { display: none; }
+  .history { width: 100%; margin-bottom: 16px; }
   .history-title {
     font-size: 12px;
-    color: #888;
+    color: #aaa;
     font-weight: 600;
     margin-bottom: 8px;
     letter-spacing: 1px;
@@ -291,16 +299,16 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: #12122a;
-    border: 1px solid #2a2a44;
-    border-radius: 10px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
     margin-bottom: 6px;
     font-size: 13px;
   }
-  .history-item .h-time { color: #777; }
-  .history-item .h-dist { color: #aaa; font-family: monospace; }
-  .history-item .h-dur { color: #aaa; }
-  .history-item .h-fare { color: #00ff88; font-weight: 700; font-family: monospace; }
+  .h-time { color: #888; }
+  .h-dist { color: #aaa; font-family: monospace; }
+  .h-dur { color: #aaa; }
+  .h-fare { color: #ddd; font-weight: 700; font-family: monospace; }
   .btn-clear {
     width: 100%;
     padding: 8px;
@@ -309,7 +317,7 @@
     border-radius: 8px;
     cursor: pointer;
     background: transparent;
-    color: #666;
+    color: #777;
     margin-top: 4px;
   }
 
@@ -321,74 +329,56 @@
 </head>
 <body>
 <div class="container">
-  <!-- Header -->
   <div class="header">
     <span class="header-icon">🚕</span>
     <span class="header-title">Taxi Meter</span>
   </div>
 
-  <!-- Status bar -->
   <div class="status-bar">
-    <span class="status-label" id="statusLabel">
+    <span id="statusLabel">
       <span class="status-dot" id="statusDot"></span>
       <span id="statusText">待機</span>
     </span>
-    <span class="status-sep">|</span>
-    <span class="gps-status" id="gpsStatus">GPS: 等待中</span>
+    <span style="color:#444">|</span>
+    <span id="gpsStatus">GPS: 等待中</span>
   </div>
 
-  <!-- Fare display -->
-  <div class="fare-panel">
-    <div class="fare-label">應付車資</div>
-    <div class="fare-value">
-      <span class="fare-currency">NT$</span>
-      <span class="fare-digits" id="fareDisplay">85</span>
-    </div>
+  <div class="lcd-panel">
+    <div class="lcd-label">應付車資</div>
+    <div class="seg-row" id="fareDisplay"></div>
     <div class="night-badge" id="nightBadge">🌙 夜間加成 +NT$20</div>
   </div>
 
-  <!-- Stats -->
   <div class="stats-row">
-    <div class="stat-block">
+    <div class="stat-lcd">
       <div class="stat-label">里程</div>
-      <div class="stat-value distance" id="distDisplay">0.00</div>
+      <div class="stat-digits" id="distDisplay"></div>
       <div class="stat-unit">km</div>
     </div>
-    <div class="stat-sep"></div>
-    <div class="stat-block">
+    <div class="stat-lcd">
       <div class="stat-label">時間</div>
-      <div class="stat-value time" id="timeDisplay">00:00</div>
+      <div class="stat-digits" id="timeDisplay"></div>
       <div class="stat-unit">&nbsp;</div>
     </div>
-    <div class="stat-sep"></div>
-    <div class="stat-block">
+    <div class="stat-lcd">
       <div class="stat-label">時速</div>
-      <div class="stat-value speed" id="speedDisplay">0</div>
+      <div class="stat-digits" id="speedDisplay"></div>
       <div class="stat-unit">km/h</div>
     </div>
   </div>
 
-  <!-- Wait time -->
   <div class="wait-bar">
     <span class="wait-label">⏱ 等候時間</span>
     <span class="wait-value" id="waitDisplay">00:00</span>
     <span class="wait-fare" id="waitFare">(+NT$0)</span>
   </div>
 
-  <!-- Controls -->
-  <div class="controls" id="controlsIdle">
-    <button class="btn btn-start" onclick="handleStart()">▶ 開始計費</button>
-  </div>
-  <div class="controls hidden" id="controlsRunning">
-    <button class="btn btn-pause" onclick="handlePause()">⏸ 暫停</button>
-    <button class="btn btn-stop" onclick="handleReset()">⏹ 結束</button>
-  </div>
-  <div class="controls hidden" id="controlsPaused">
-    <button class="btn btn-start" onclick="handleResume()">▶ 繼續</button>
-    <button class="btn btn-stop" onclick="handleReset()">⏹ 結束</button>
+  <div class="controls">
+    <button class="btn btn-start" id="btnStart" onclick="onStart()">▶ 開始計費</button>
+    <button class="btn btn-pause hidden" id="btnPause" onclick="onPause()">⏸ 暫停</button>
+    <button class="btn btn-stop hidden" id="btnStop" onclick="onReset()">⏹ 結束</button>
   </div>
 
-  <!-- Night toggle -->
   <div class="night-toggle">
     <span class="night-toggle-label">🌙 夜間加成（23:00–06:00）</span>
     <button class="toggle-track" id="nightToggle" onclick="toggleNight()">
@@ -396,7 +386,6 @@
     </button>
   </div>
 
-  <!-- Fare rules -->
   <div class="fare-rules">
     <div class="fare-rules-title">費率說明</div>
     <div>起步價 NT$85（1.25 km 內）</div>
@@ -405,7 +394,6 @@
     <div>夜間加成（23:00–06:00）+NT$20</div>
   </div>
 
-  <!-- History -->
   <div class="history hidden" id="historySection">
     <div class="history-title">行程紀錄</div>
     <div id="historyList"></div>
@@ -414,251 +402,164 @@
 </div>
 
 <script>
-// === Fare rules ===
-const RULES = {
-  baseFare: 85,
-  baseDistance: 1250,
-  distanceUnit: 200,
-  distanceRate: 5,
-  waitTimeUnit: 80,
-  waitTimeRate: 5,
-  speedThreshold: 5,
-  nightSurcharge: 20,
+// ===== Fare rules =====
+const R = {
+  baseFare:85, baseDist:1250,
+  dUnit:200, dRate:5,
+  wUnit:80, wRate:5,
+  sTh:5, nPlus:20,
 };
 
-// === State ===
-let status = "idle"; // idle | running | paused
-let distance = 0;     // meters
-let elapsed = 0;      // seconds
-let waitTime = 0;     // seconds
-let speed = 0;        // km/h
-let isNight = (() => { const h = new Date().getHours(); return h >= 23 || h < 6; })();
-let history = [];
+// ===== Seven-segment =====
+const SM = {
+  '0':[1,1,1,1,1,1,0],'1':[0,1,1,0,0,0,0],'2':[1,1,0,1,1,0,1],
+  '3':[1,1,1,1,0,0,1],'4':[0,1,1,0,0,1,1],'5':[1,0,1,1,0,1,1],
+  '6':[1,0,1,1,1,1,1],'7':[1,1,1,0,0,0,0],'8':[1,1,1,1,1,1,1],
+  '9':[1,1,1,1,0,1,1],
+};
 
-let lastPos = null;
-let watchId = null;
-let timerInterval = null;
-let startTimestamp = null;
-let pausedElapsed = 0;
-let simInterval = null;
-
-// === DOM refs ===
-const $ = (id) => document.getElementById(id);
-
-// === Haversine distance ===
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function mkSegs(w,h,t) {
+  const hw = w - 2*t - 4;
+  const vh = (h - 3*t)/2 - 2;
+  const ml = t + 2;
+  const r = Math.max(1, t/3);
+  return [
+    {l:ml,t:0,w:hw,h:t},          // a top
+    {l:w-t,t:t+1,w:t,h:vh},       // b top-right
+    {l:w-t,t:t+vh+t+2,w:t,h:vh},  // c bot-right
+    {l:ml,t:h-t,w:hw,h:t},        // d bottom
+    {l:0,t:t+vh+t+2,w:t,h:vh},    // e bot-left
+    {l:0,t:t+1,w:t,h:vh},         // f top-left
+    {l:ml,t:t+vh+1,w:hw,h:t},     // g middle
+  ].map(s => `position:absolute;border-radius:${r}px;left:${s.l}px;top:${s.t}px;width:${s.w}px;height:${s.h}px`);
 }
 
-// === Fare calc ===
-function calcFare() {
-  let fare = RULES.baseFare;
-  if (isNight) fare += RULES.nightSurcharge;
-  const extraDist = Math.max(0, distance - RULES.baseDistance);
-  fare += Math.floor(extraDist / RULES.distanceUnit) * RULES.distanceRate;
-  fare += Math.floor(waitTime / RULES.waitTimeUnit) * RULES.waitTimeRate;
-  return fare;
+function render7(el, text, sz) {
+  const c = sz==='lg' ? {w:36,h:62,t:5,g:4} : {w:20,h:36,t:3,g:2};
+  const styles = mkSegs(c.w, c.h, c.t);
+  let html = sz==='lg' ? '<span class="seg-currency">NT$</span>' : '';
+
+  for (const ch of text) {
+    if (ch===',' || ch==='.') {
+      const d = sz==='lg'?5:3;
+      html += `<span style="display:inline-flex;align-items:flex-end;justify-content:center;width:${d+4}px;height:${c.h}px"><span style="width:${d}px;height:${d}px;background:#1a2c0a;border-radius:1px"></span></span>`;
+    } else if (ch===':') {
+      const d = sz==='lg'?5:3;
+      const sp = Math.floor(c.h*0.25);
+      html += `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:${sp}px;width:${d+6}px;height:${c.h}px"><span style="width:${d}px;height:${d}px;background:#1a2c0a;border-radius:1px"></span><span style="width:${d}px;height:${d}px;background:#1a2c0a;border-radius:1px"></span></span>`;
+    } else if (SM[ch]) {
+      const on = SM[ch];
+      let d = `<span class="seg-digit" style="width:${c.w}px;height:${c.h}px;margin:0 ${c.g/2}px">`;
+      for (let i=0; i<7; i++) {
+        d += `<span class="seg ${on[i]?'on':'off'}" style="${styles[i]}"></span>`;
+      }
+      d += '</span>';
+      html += d;
+    } else if (ch===' ') {
+      html += `<span style="width:${c.w*0.5}px;display:inline-block"></span>`;
+    }
+  }
+  el.innerHTML = html;
 }
 
-// === Format time ===
-function fmtTime(s) {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
+// ===== State =====
+let status='idle', dist=0, elapsed=0, waitTime=0, speed=0;
+let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
+let hist=[];
+let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, simRef=null;
+const $=id=>document.getElementById(id);
 
-// === UI update ===
-function updateUI() {
-  const fare = calcFare();
-  $("fareDisplay").textContent = fare.toLocaleString("en-US");
-  $("distDisplay").textContent = (distance / 1000).toFixed(2);
-  $("timeDisplay").textContent = fmtTime(elapsed);
-  $("speedDisplay").textContent = speed;
-  $("waitDisplay").textContent = fmtTime(waitTime);
-  $("waitFare").textContent = `(+NT$${Math.floor(waitTime / RULES.waitTimeUnit) * RULES.waitTimeRate})`;
+function hav(a1,o1,a2,o2){const R2=6371e3,dL=(a2-a1)*Math.PI/180,dO=(o2-o1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;return R2*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
-  // Speed color
-  const speedEl = $("speedDisplay");
-  speedEl.classList.toggle("waiting", speed < RULES.speedThreshold && status === "running");
+function fare(){let f=R.baseFare;if(isNight)f+=R.nPlus;f+=Math.floor(Math.max(0,dist-R.baseDist)/R.dUnit)*R.dRate;f+=Math.floor(waitTime/R.wUnit)*R.wRate;return f}
 
-  // Wait time color
-  $("waitDisplay").classList.toggle("active", waitTime > 0);
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0')}
 
-  // Night badge
-  $("nightBadge").classList.toggle("visible", isNight);
+function updateUI(){
+  render7($('fareDisplay'), fare().toLocaleString('en-US'), 'lg');
+  render7($('distDisplay'), (dist/1000).toFixed(2), 'sm');
+  render7($('timeDisplay'), fmt(elapsed), 'sm');
+  render7($('speedDisplay'), String(speed).padStart(2,' '), 'sm');
 
-  // Night toggle
-  $("nightToggle").classList.toggle("on", isNight);
+  const wE=$('waitDisplay');
+  wE.textContent=fmt(waitTime);
+  wE.classList.toggle('active',waitTime>0);
+  $('waitFare').textContent='(+NT$'+Math.floor(waitTime/R.wUnit)*R.wRate+')';
 
-  // Status
-  const dot = $("statusDot");
-  const label = $("statusLabel");
-  dot.className = "status-dot " + status;
-  label.className = "status-label " + status;
-  $("statusText").textContent = status === "idle" ? "待機" : status === "running" ? "計費中" : "暫停";
+  $('nightBadge').classList.toggle('visible',isNight);
+  $('nightToggle').classList.toggle('on',isNight);
 
-  // Controls
-  $("controlsIdle").classList.toggle("hidden", status !== "idle");
-  $("controlsRunning").classList.toggle("hidden", status !== "running");
-  $("controlsPaused").classList.toggle("hidden", status !== "paused");
+  $('statusDot').className='status-dot'+(status==='running'?' running':status==='paused'?' paused':'');
+  $('statusLabel').className=status==='running'?'status-running':status==='paused'?'status-paused':'';
+  $('statusText').textContent=status==='idle'?'待機':status==='running'?'計費中':'暫停';
 
-  // History
-  $("historySection").classList.toggle("hidden", history.length === 0);
-}
-
-// === GPS status ===
-function setGpsStatus(s) {
-  const el = $("gpsStatus");
-  el.className = "gps-status " + s;
-  const labels = { waiting: "GPS: 等待中", active: "GPS: 定位中", simulating: "GPS: 模擬模式", error: "GPS: 無訊號" };
-  el.textContent = labels[s] || "GPS: 等待中";
-}
-
-// === Simulation (when GPS unavailable) ===
-function startSimulation() {
-  setGpsStatus("simulating");
-  simInterval = setInterval(() => {
-    const baseSpeed = 25 + Math.random() * 20;
-    const isWaiting = Math.random() < 0.15;
-    const cur = isWaiting ? 0 : Math.round(baseSpeed);
-    speed = cur;
-    if (cur < RULES.speedThreshold) waitTime++;
-    distance += (cur * 1000) / 3600;
-    updateUI();
-  }, 1000);
-}
-
-function stopGps() {
-  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  if (simInterval !== null) { clearInterval(simInterval); simInterval = null; }
-}
-
-function stopTimer() {
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-}
-
-// === Controls ===
-function handleStart() {
-  status = "running";
-  lastPos = null;
-  startTimestamp = Date.now() - pausedElapsed * 1000;
-
-  timerInterval = setInterval(() => {
-    elapsed = Math.floor((Date.now() - startTimestamp) / 1000);
-    updateUI();
-  }, 1000);
-
-  if (!navigator.geolocation) {
-    startSimulation();
-    updateUI();
-    return;
+  const bs=$('btnStart'),bp=$('btnPause'),bt=$('btnStop');
+  if(status==='idle'){
+    bs.classList.remove('hidden'); bs.textContent='▶ 開始計費';
+    bp.classList.add('hidden'); bt.classList.add('hidden');
+  } else if(status==='running'){
+    bs.classList.add('hidden');
+    bp.classList.remove('hidden'); bt.classList.remove('hidden');
+  } else {
+    bs.classList.remove('hidden'); bs.textContent='▶ 繼續';
+    bp.classList.add('hidden'); bt.classList.remove('hidden');
   }
 
-  let gpsFailed = false;
+  $('historySection').classList.toggle('hidden',hist.length===0);
+}
 
-  watchId = navigator.geolocation.watchPosition(
-    (pos) => {
-      setGpsStatus("active");
-      const { latitude, longitude, speed: gpsSpeed } = pos.coords;
-      const cur = gpsSpeed != null ? Math.round(gpsSpeed * 3.6) : 0;
-      speed = cur;
-      if (cur < RULES.speedThreshold) waitTime++;
+function setGps(s){
+  const e=$('gpsStatus');
+  e.className=s==='active'?'gps-active':s==='simulating'?'gps-sim':'';
+  e.textContent={waiting:'GPS: 等待中',active:'GPS: 定位中',simulating:'GPS: 模擬模式'}[s]||'GPS: 等待中';
+}
 
-      if (lastPos) {
-        const d = haversine(lastPos.lat, lastPos.lon, latitude, longitude);
-        if (d > 3 && d < 200) distance += d;
-      }
-      lastPos = { lat: latitude, lon: longitude };
-      updateUI();
-    },
-    (err) => {
-      if (!gpsFailed) {
-        gpsFailed = true;
-        startSimulation();
-      }
-    },
-    { enableHighAccuracy: true, maximumAge: 2000, timeout: 5000 }
+function startSim(){
+  setGps('simulating');
+  simRef=setInterval(()=>{
+    const b=25+Math.random()*20;
+    speed=Math.random()<0.15?0:Math.round(b);
+    if(speed<R.sTh)waitTime++;
+    dist+=(speed*1000)/3600;
+    updateUI();
+  },1000);
+}
+function stopG(){if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}if(simRef!==null){clearInterval(simRef);simRef=null}}
+function stopT(){if(timerRef){clearInterval(timerRef);timerRef=null}}
+
+function startMeter(){
+  status='running'; lastPos=null;
+  startTS=Date.now()-pausedE*1000;
+  timerRef=setInterval(()=>{elapsed=Math.floor((Date.now()-startTS)/1000);updateUI()},1000);
+  if(!navigator.geolocation){startSim();updateUI();return}
+  let gf=false;
+  watchId=navigator.geolocation.watchPosition(
+    p=>{setGps('active');const{latitude:la,longitude:lo,speed:gs}=p.coords;speed=gs!=null?Math.round(gs*3.6):0;if(speed<R.sTh)waitTime++;if(lastPos){const d=hav(lastPos.lat,lastPos.lon,la,lo);if(d>3&&d<200)dist+=d}lastPos={lat:la,lon:lo};updateUI()},
+    ()=>{if(!gf){gf=true;startSim()}},
+    {enableHighAccuracy:true,maximumAge:2000,timeout:5000}
   );
   updateUI();
 }
 
-function handlePause() {
-  status = "paused";
-  pausedElapsed = elapsed;
-  stopGps();
-  stopTimer();
-  updateUI();
-}
-
-function handleResume() {
-  handleStart();
-}
-
-function handleReset() {
-  status = "idle";
-  stopGps();
-  stopTimer();
-
-  if (distance > 0) {
-    const now = new Date();
-    history.push({
-      fare: calcFare(),
-      distance,
-      elapsed,
-      waitTime,
-      isNight,
-      time: now.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" }),
-    });
-    renderHistory();
+function onStart(){startMeter()}
+function onPause(){status='paused';pausedE=elapsed;stopG();stopT();updateUI()}
+function onReset(){
+  stopG();stopT();
+  if(dist>0){
+    const n=new Date();
+    hist.push({fare:fare(),distance:dist,elapsed,waitTime,isNight,time:n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
+    renderHist();
   }
-
-  distance = 0;
-  elapsed = 0;
-  waitTime = 0;
-  speed = 0;
-  lastPos = null;
-  pausedElapsed = 0;
-  setGpsStatus("waiting");
-  updateUI();
+  status='idle';dist=0;elapsed=0;waitTime=0;speed=0;lastPos=null;pausedE=0;
+  setGps('waiting');updateUI();
 }
+function toggleNight(){isNight=!isNight;updateUI()}
 
-function toggleNight() {
-  isNight = !isNight;
-  updateUI();
+function renderHist(){
+  $('historyList').innerHTML=hist.map(t=>`<div class="history-item"><span class="h-time">${t.time} ${t.isNight?'🌙':'☀️'}</span><span class="h-dist">${(t.distance/1000).toFixed(2)} km</span><span class="h-dur">${fmt(t.elapsed)}</span><span class="h-fare">$${t.fare.toLocaleString()}</span></div>`).join('');
 }
+function clearHistory(){hist=[];renderHist();updateUI()}
 
-// === History ===
-function renderHistory() {
-  const list = $("historyList");
-  list.innerHTML = "";
-  history.forEach((trip) => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.innerHTML = `
-      <span class="h-time">${trip.time} ${trip.isNight ? "🌙" : "☀️"}</span>
-      <span class="h-dist">${(trip.distance / 1000).toFixed(2)} km</span>
-      <span class="h-dur">${fmtTime(trip.elapsed)}</span>
-      <span class="h-fare">$${trip.fare.toLocaleString()}</span>
-    `;
-    list.appendChild(div);
-  });
-}
-
-function clearHistory() {
-  history = [];
-  renderHistory();
-  updateUI();
-}
-
-// === Init ===
 updateUI();
 </script>
 </body>
