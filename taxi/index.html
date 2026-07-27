@@ -31,7 +31,7 @@
     justify-content: center;
     gap: 12px;
     margin-bottom: 16px;
-    font-size: 21px;
+    font-size: 18px;
     color: #707070;
   }
   .status-dot {
@@ -81,30 +81,23 @@
     font-weight: 600;
   }
 
-  /* Seven-segment */
-  .seg-row {
+  /* Fare digits */
+  .fare-row {
     display: flex;
-    align-items: flex-end;
+    align-items: baseline;
     justify-content: center;
-    gap: 2px;
+    gap: 6px;
   }
-  .seg-currency {
-    font-size: 18px;
+  .fare-currency {
+    font-size: 20px;
     font-weight: 700;
     color: rgba(26,40,10,0.4);
-    margin-right: 6px;
-    margin-bottom: 6px;
   }
-  .seg-digit {
-    position: relative;
-    display: inline-block;
+  .fare-digits {
+    font-weight: 700;
+    color: #000;
+    font-size: 56px;
   }
-  .seg {
-    position: absolute;
-    border-radius: 1.5px;
-  }
-  .seg.on { background: #000; }
-  .seg.off { background: #1a2c0a; opacity: 0.07; }
 
   .night-badge {
     text-align: center;
@@ -119,42 +112,50 @@
   /* Stats row */
   .stats-row {
     display: flex;
+    flex-direction: column;
     width: 100%;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-  .stat-lcd {
-    flex: 1;
     background: #8aad32;
-    border: 2px solid #5a7a22;
-    border-radius: 10px;
-    padding: 10px 6px;
-    text-align: center;
-    box-shadow: inset 0 1px 4px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.3);
+    border: 3px solid #5a7a22;
+    border-radius: 14px;
+    padding: 4px 20px;
+    margin-bottom: 14px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.4);
     position: relative;
     overflow: hidden;
   }
-  .stat-lcd::after {
+  .stats-row::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
     pointer-events: none;
   }
+  .stat-lcd {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+  }
+  .stat-lcd + .stat-lcd {
+    border-top: 1px solid rgba(58,85,24,0.35);
+  }
   .stat-label {
-    font-size: 12px;
+    width: 60px;
+    flex-shrink: 0;
+    font-size: 16px;
     color: #3a5518;
     letter-spacing: 1px;
-    margin-bottom: 6px;
     font-weight: 600;
   }
-  .stat-digits {
+  .stat-value {
     display: flex;
-    justify-content: center;
-    gap: 1px;
-    margin-bottom: 3px;
+    align-items: baseline;
+    gap: 6px;
   }
-  .seg-row > *, .stat-digits > * { flex-shrink: 0; }
+  .stat-digits {
+    font-weight: 700;
+    color: #000;
+    font-size: 30px;
+  }
   .stat-unit {
     font-size: 10px;
     color: #3a5518;
@@ -326,25 +327,33 @@
 
   <div class="lcd-panel">
     <div class="lcd-label">應付車資</div>
-    <div class="seg-row" id="fareDisplay"></div>
+    <div class="fare-row">
+      <span class="fare-currency">NT$</span>
+      <span class="fare-digits" id="fareDisplay"></span>
+    </div>
     <div class="night-badge" id="nightBadge">🌙 夜間加成 +NT$20</div>
   </div>
 
   <div class="stats-row">
     <div class="stat-lcd">
       <div class="stat-label">里程</div>
-      <div class="stat-digits" id="distDisplay"></div>
-      <div class="stat-unit">km</div>
+      <div class="stat-value">
+        <div class="stat-digits" id="distDisplay"></div>
+        <span class="stat-unit">km</span>
+      </div>
     </div>
     <div class="stat-lcd">
       <div class="stat-label">時間</div>
-      <div class="stat-digits" id="timeDisplay"></div>
-      <div class="stat-unit">&nbsp;</div>
+      <div class="stat-value">
+        <div class="stat-digits" id="timeDisplay"></div>
+      </div>
     </div>
     <div class="stat-lcd">
       <div class="stat-label">時速</div>
-      <div class="stat-digits" id="speedDisplay"></div>
-      <div class="stat-unit">km/h</div>
+      <div class="stat-value">
+        <div class="stat-digits" id="speedDisplay"></div>
+        <span class="stat-unit">km/h</span>
+      </div>
     </div>
   </div>
 
@@ -391,58 +400,6 @@ const R = {
   sTh:5, nPlus:20,
 };
 
-// ===== Seven-segment =====
-const SM = {
-  '0':[1,1,1,1,1,1,0],'1':[0,1,1,0,0,0,0],'2':[1,1,0,1,1,0,1],
-  '3':[1,1,1,1,0,0,1],'4':[0,1,1,0,0,1,1],'5':[1,0,1,1,0,1,1],
-  '6':[1,0,1,1,1,1,1],'7':[1,1,1,0,0,0,0],'8':[1,1,1,1,1,1,1],
-  '9':[1,1,1,1,0,1,1],
-};
-
-function mkSegs(w,h,t) {
-  const hw = w - 2*t - 4;
-  const vh = (h - 3*t)/2 - 2;
-  const ml = t + 2;
-  const r = Math.max(1, t/3);
-  return [
-    {l:ml,t:0,w:hw,h:t},          // a top
-    {l:w-t,t:t+1,w:t,h:vh},       // b top-right
-    {l:w-t,t:t+vh+t+2,w:t,h:vh},  // c bot-right
-    {l:ml,t:h-t,w:hw,h:t},        // d bottom
-    {l:0,t:t+vh+t+2,w:t,h:vh},    // e bot-left
-    {l:0,t:t+1,w:t,h:vh},         // f top-left
-    {l:ml,t:t+vh+1,w:hw,h:t},     // g middle
-  ].map(s => `position:absolute;border-radius:${r}px;left:${s.l}px;top:${s.t}px;width:${s.w}px;height:${s.h}px`);
-}
-
-function render7(el, text, sz) {
-  const c = sz==='lg' ? {w:36,h:62,t:5,g:4} : {w:20,h:36,t:3,g:2};
-  const styles = mkSegs(c.w, c.h, c.t);
-  let html = sz==='lg' ? '<span class="seg-currency">NT$</span>' : '';
-
-  for (const ch of text) {
-    if (ch===',' || ch==='.') {
-      const d = sz==='lg'?5:3;
-      html += `<span style="display:inline-flex;align-items:flex-end;justify-content:center;width:${d+4}px;height:${c.h}px"><span style="width:${d}px;height:${d}px;background:#000;border-radius:1px"></span></span>`;
-    } else if (ch===':') {
-      const d = sz==='lg'?5:3;
-      const sp = Math.floor(c.h*0.25);
-      html += `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:${sp}px;width:${d+6}px;height:${c.h}px"><span style="width:${d}px;height:${d}px;background:#000;border-radius:1px"></span><span style="width:${d}px;height:${d}px;background:#000;border-radius:1px"></span></span>`;
-    } else if (SM[ch]) {
-      const on = SM[ch];
-      let d = `<span class="seg-digit" style="width:${c.w}px;height:${c.h}px;margin:0 ${c.g/2}px">`;
-      for (let i=0; i<7; i++) {
-        d += `<span class="seg ${on[i]?'on':'off'}" style="${styles[i]}"></span>`;
-      }
-      d += '</span>';
-      html += d;
-    } else if (ch===' ') {
-      html += `<span style="width:${c.w*0.5}px;display:inline-block"></span>`;
-    }
-  }
-  el.innerHTML = html;
-}
-
 // ===== State =====
 let status='idle', dist=0, elapsed=0, waitTime=0, speed=0;
 let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
@@ -457,10 +414,10 @@ function fare(){let f=R.baseFare;if(isNight)f+=R.nPlus;f+=Math.floor(Math.max(0,
 function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0')}
 
 function updateUI(){
-  render7($('fareDisplay'), fare().toLocaleString('en-US'), 'lg');
-  render7($('distDisplay'), (dist/1000).toFixed(2), 'sm');
-  render7($('timeDisplay'), fmt(elapsed), 'sm');
-  render7($('speedDisplay'), String(speed).padStart(2,' '), 'sm');
+  $('fareDisplay').textContent = fare().toLocaleString('en-US');
+  $('distDisplay').textContent = (dist/1000).toFixed(2);
+  $('timeDisplay').textContent = fmt(elapsed);
+  $('speedDisplay').textContent = String(speed).padStart(2,'0');
 
   const wE=$('waitDisplay');
   wE.textContent=fmt(waitTime);
