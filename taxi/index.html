@@ -25,28 +25,13 @@
     align-items: center;
   }
 
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 8px 0;
-  }
-  .header-icon { font-size: 28px; }
-  .header-title {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    color: #e0e0e0;
-    text-transform: uppercase;
-  }
-
   .status-bar {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
     margin-bottom: 16px;
-    font-size: 12px;
+    font-size: 21px;
     color: #707070;
   }
   .status-dot {
@@ -169,6 +154,7 @@
     gap: 1px;
     margin-bottom: 3px;
   }
+  .seg-row > *, .stat-digits > * { flex-shrink: 0; }
   .stat-unit {
     font-size: 10px;
     color: #3a5518;
@@ -329,11 +315,6 @@
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <span class="header-icon">🚕</span>
-    <span class="header-title">Taxi Meter</span>
-  </div>
-
   <div class="status-bar">
     <span id="statusLabel">
       <span class="status-dot" id="statusDot"></span>
