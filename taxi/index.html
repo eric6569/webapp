@@ -58,25 +58,18 @@
     background: #8aad32;
     border: 3px solid #5a7a22;
     border-radius: 14px;
-    padding: 22px 24px 18px;
+    padding: 18px 20px 18px;
     width: 100%;
     margin-bottom: 14px;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.4);
     position: relative;
     overflow: hidden;
   }
-  .lcd-panel::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-    pointer-events: none;
-  }
   .lcd-label {
     font-size: 21px;
     color: #3a5518;
     letter-spacing: 2px;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     text-align: center;
     font-weight: 600;
   }
@@ -92,11 +85,13 @@
     font-size: 20px;
     font-weight: 700;
     color: rgba(26,40,10,0.4);
+    line-height: 1;
   }
   .fare-digits {
     font-weight: 700;
     color: #000;
     font-size: 56px;
+    line-height: 1;
   }
 
   .night-badge {
@@ -123,23 +118,17 @@
     position: relative;
     overflow: hidden;
   }
-  .stats-row::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-    pointer-events: none;
-  }
   .stat-lcd {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
     padding: 10px 0;
   }
   .stat-lcd + .stat-lcd {
     border-top: 1px solid rgba(58,85,24,0.35);
   }
   .stat-label {
-    width: 60px;
     flex-shrink: 0;
     font-size: 16px;
     color: #3a5518;
@@ -380,7 +369,7 @@
     <div class="fare-rules-title">費率說明</div>
     <div>起步價 NT$85（1.25 km 內）</div>
     <div>續程每 200m 跳 NT$5</div>
-    <div>時速 5 km/h 以下，每 80 秒跳 NT$5</div>
+    <div>時速 5 km/h 以下，每 60 秒跳 NT$5</div>
     <div>夜間加成（23:00–06:00）+NT$20</div>
   </div>
 
@@ -396,7 +385,7 @@
 const R = {
   baseFare:85, baseDist:1250,
   dUnit:200, dRate:5,
-  wUnit:80, wRate:5,
+  wUnit:60, wRate:5,
   sTh:5, nPlus:20,
 };
 
@@ -404,8 +393,63 @@ const R = {
 let status='idle', dist=0, elapsed=0, waitTime=0, speed=0;
 let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
 let hist=[];
-let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, simRef=null;
+let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, simRef=null, lastFare=null;
 const $=id=>document.getElementById(id);
+
+// ===== Wake lock =====
+let wakeLock=null;
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',()=>{wakeLock=null});
+  }catch(e){wakeLock=null}
+}
+function releaseWakeLock(){
+  if(wakeLock){wakeLock.release();wakeLock=null}
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && status==='running' && !wakeLock) requestWakeLock();
+});
+
+// ===== Sound effects =====
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(ctx,freq,start,dur,peak=0.45){
+  const osc=ctx.createOscillator(), gain=ctx.createGain();
+  osc.type='triangle'; osc.frequency.value=freq;
+  gain.gain.setValueAtTime(0,start);
+  gain.gain.linearRampToValueAtTime(peak,start+0.008);
+  gain.gain.exponentialRampToValueAtTime(0.001,start+dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start); osc.stop(start+dur+0.02);
+}
+function playStartSound(){ // 開始計費
+  const ctx=getAudioCtx(), t0=ctx.currentTime;
+  tone(ctx,659.25,t0,0.12,0.45);
+  tone(ctx,783.99,t0+0.1,0.12,0.45);
+  tone(ctx,1046.5,t0+0.2,0.2,0.45);
+}
+function playTickSound(){ // 跳表
+  const ctx=getAudioCtx(), t0=ctx.currentTime;
+  tone(ctx,880,t0,0.13,0.45);
+  tone(ctx,1318.5,t0+0.1,0.18,0.45);
+}
+function playPauseSound(){ // 暫停
+  const ctx=getAudioCtx(), t0=ctx.currentTime;
+  tone(ctx,659.25,t0,0.13,0.4);
+  tone(ctx,440,t0+0.11,0.2,0.4);
+}
+function playStopSound(){ // 結束
+  const ctx=getAudioCtx(), t0=ctx.currentTime;
+  tone(ctx,880,t0,0.13,0.45);
+  tone(ctx,659.25,t0+0.11,0.13,0.45);
+  tone(ctx,440,t0+0.22,0.26,0.45);
+}
 
 function hav(a1,o1,a2,o2){const R2=6371e3,dL=(a2-a1)*Math.PI/180,dO=(o2-o1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;return R2*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
@@ -414,7 +458,10 @@ function fare(){let f=R.baseFare;if(isNight)f+=R.nPlus;f+=Math.floor(Math.max(0,
 function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0')}
 
 function updateUI(){
-  $('fareDisplay').textContent = fare().toLocaleString('en-US');
+  const f=fare();
+  if(status==='running' && lastFare!==null && f>lastFare) playTickSound();
+  lastFare=f;
+  $('fareDisplay').textContent = f.toLocaleString('en-US');
   $('distDisplay').textContent = (dist/1000).toFixed(2);
   $('timeDisplay').textContent = fmt(elapsed);
   $('speedDisplay').textContent = String(speed).padStart(2,'0');
@@ -467,6 +514,9 @@ function stopT(){if(timerRef){clearInterval(timerRef);timerRef=null}}
 
 function startMeter(){
   status='running'; lastPos=null;
+  lastFare=fare();
+  playStartSound();
+  requestWakeLock();
   startTS=Date.now()-pausedE*1000;
   timerRef=setInterval(()=>{elapsed=Math.floor((Date.now()-startTS)/1000);updateUI()},1000);
   if(!navigator.geolocation){startSim();updateUI();return}
@@ -480,9 +530,11 @@ function startMeter(){
 }
 
 function onStart(){startMeter()}
-function onPause(){status='paused';pausedE=elapsed;stopG();stopT();updateUI()}
+function onPause(){status='paused';pausedE=elapsed;stopG();stopT();playPauseSound();releaseWakeLock();updateUI()}
 function onReset(){
   stopG();stopT();
+  playStopSound();
+  releaseWakeLock();
   if(dist>0){
     const n=new Date();
     hist.push({fare:fare(),distance:dist,elapsed,waitTime,isNight,time:n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
