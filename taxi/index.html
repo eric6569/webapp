@@ -297,7 +297,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.3.0</span>
+    <span class="app-version">v1.3.1</span>
   </div>
 
   <div class="lcd-panel">
@@ -346,15 +346,15 @@
     </div>
 
     <div class="night-toggle">
-      <span class="night-toggle-label">🔆 螢幕保持常亮</span>
-      <button class="toggle-track" id="wakeLockToggle" onclick="toggleWakeLockSetting()">
+      <span class="night-toggle-label">🔇 靜音</span>
+      <button class="toggle-track" id="muteToggle" onclick="toggleMute()">
         <span class="toggle-thumb"></span>
       </button>
     </div>
 
     <div class="night-toggle">
-      <span class="night-toggle-label">🔇 靜音</span>
-      <button class="toggle-track" id="muteToggle" onclick="toggleMute()">
+      <span class="night-toggle-label">🔆 螢幕常亮</span>
+      <button class="toggle-track" id="wakeLockToggle" onclick="toggleWakeLockSetting()">
         <span class="toggle-thumb"></span>
       </button>
     </div>
@@ -546,7 +546,7 @@ function onReset(){
   stopT();
   playStopSound();
   releaseWakeLock();
-  if(dist>0){
+  if(elapsed>0){
     const n=new Date();
     hist.push({fare:fare(),distance:dist,elapsed,waitTime,isNight,time:n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
     renderHist();
