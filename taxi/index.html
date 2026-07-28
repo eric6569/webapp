@@ -189,16 +189,22 @@
   .hidden { display: none !important; }
 
   /* Night toggle */
-  .night-toggle {
+  .settings-box {
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
     background: #1a1a1a;
     border: 1px solid #333;
     border-radius: 10px;
     margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .night-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+  }
+  .night-toggle + .night-toggle {
+    border-top: 1px solid #333;
   }
   .night-toggle-label { font-size: 13px; color: #aaa; }
   .toggle-track {
@@ -291,7 +297,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.2.0</span>
+    <span class="app-version">v1.3.0</span>
   </div>
 
   <div class="lcd-panel">
@@ -331,18 +337,27 @@
     <button class="btn btn-stop hidden" id="btnStop" onclick="onReset()">⏹ 結束</button>
   </div>
 
-  <div class="night-toggle">
-    <span class="night-toggle-label">🌙 夜間加成（23:00–06:00）</span>
-    <button class="toggle-track" id="nightToggle" onclick="toggleNight()">
-      <span class="toggle-thumb"></span>
-    </button>
-  </div>
+  <div class="settings-box">
+    <div class="night-toggle">
+      <span class="night-toggle-label">🌙 夜間加成（23:00–06:00）</span>
+      <button class="toggle-track" id="nightToggle" onclick="toggleNight()">
+        <span class="toggle-thumb"></span>
+      </button>
+    </div>
 
-  <div class="night-toggle">
-    <span class="night-toggle-label">🔆 螢幕保持常亮</span>
-    <button class="toggle-track" id="wakeLockToggle" onclick="toggleWakeLockSetting()">
-      <span class="toggle-thumb"></span>
-    </button>
+    <div class="night-toggle">
+      <span class="night-toggle-label">🔆 螢幕保持常亮</span>
+      <button class="toggle-track" id="wakeLockToggle" onclick="toggleWakeLockSetting()">
+        <span class="toggle-thumb"></span>
+      </button>
+    </div>
+
+    <div class="night-toggle">
+      <span class="night-toggle-label">🔇 靜音</span>
+      <button class="toggle-track" id="muteToggle" onclick="toggleMute()">
+        <span class="toggle-thumb"></span>
+      </button>
+    </div>
   </div>
 
   <div class="fare-rules">
@@ -373,7 +388,8 @@ const R = {
 let status='idle', dist=0, elapsed=0, waitTime=0, speed=0, maxSpeed=0;
 let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
 let hist=[];
-let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, lastFare=null, gpsReady=false;
+let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, lastFare=null, gpsReady=false, muted=false;
+function toggleMute(){muted=!muted;updateUI()}
 const $=id=>document.getElementById(id);
 
 // ===== Wake lock =====
@@ -410,6 +426,7 @@ function getAudioCtx(){
   return audioCtx;
 }
 function tone(ctx,freq,start,dur,peak=0.45){
+  if(muted) return;
   const osc=ctx.createOscillator(), gain=ctx.createGain();
   osc.type='triangle'; osc.frequency.value=freq;
   gain.gain.setValueAtTime(0,start);
@@ -464,6 +481,7 @@ function updateUI(){
   $('nightBadge').classList.toggle('visible',isNight);
   $('nightToggle').classList.toggle('on',isNight);
   $('wakeLockToggle').classList.toggle('on',wakeLockEnabled);
+  $('muteToggle').classList.toggle('on',muted);
 
   $('statusDot').className='status-dot'+(status==='running'?' running':status==='paused'?' paused':'');
   $('statusLabel').className=status==='running'?'status-running':status==='paused'?'status-paused':'';
