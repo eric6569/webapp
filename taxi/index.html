@@ -69,7 +69,6 @@
     margin-bottom: 14px;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.4);
     position: relative;
-    overflow: hidden;
   }
   .lcd-label {
     font-size: 21px;
@@ -98,6 +97,30 @@
     color: #000;
     font-size: 75px;
     line-height: 1;
+  }
+  @keyframes farePulse {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .fare-digits.pulse { animation: farePulse 0.35s ease-out; }
+
+  @keyframes fareFloatUp {
+    0% { opacity: 0; transform: translateY(-50%); }
+    15% { opacity: 1; transform: translateY(calc(-50% - 6px)); }
+    100% { opacity: 0; transform: translateY(calc(-50% - 32px)); }
+  }
+  .fare-popup {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    color: #cc4444;
+    font-weight: 800;
+    font-size: 18px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    pointer-events: none;
+    white-space: nowrap;
+    animation: fareFloatUp 2.5s ease-out forwards;
   }
 
   /* Stats row */
@@ -336,7 +359,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.1.0</span>
+    <span class="app-version">v1.2.0</span>
   </div>
 
   <div class="lcd-panel">
@@ -512,6 +535,16 @@ function playStopSound(){ // 結束
   tone(ctx,440,t0+0.22,0.26,0.45);
 }
 
+function playFareEffect(delta){
+  const fd=$('fareDisplay');
+  fd.classList.remove('pulse'); void fd.offsetWidth; fd.classList.add('pulse');
+  const popup=document.createElement('span');
+  popup.className='fare-popup';
+  popup.textContent='+NT$'+delta;
+  popup.addEventListener('animationend',()=>popup.remove());
+  document.querySelector('.lcd-panel').appendChild(popup);
+}
+
 function hav(a1,o1,a2,o2){const R2=6371e3,dL=(a2-a1)*Math.PI/180,dO=(o2-o1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;return R2*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 function fare(){let f=R.baseFare;if(isNight)f+=R.nPlus;f+=Math.floor(Math.max(0,dist-R.baseDist)/R.dUnit)*R.dRate;f+=Math.floor(waitTime/R.wUnit)*R.wRate;return f}
@@ -521,7 +554,7 @@ function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(
 function updateUI(){
   isNight=computeNight();
   const f=fare();
-  if(status==='running' && lastFare!==null && f>lastFare) playTickSound();
+  if(status==='running' && lastFare!==null && f>lastFare){playTickSound();playFareEffect(f-lastFare)}
   lastFare=f;
   $('fareLabel').textContent = isNight ? '應付車資 - 夜間加成' : '應付車資';
   $('fareDisplay').textContent = f.toLocaleString('en-US');
