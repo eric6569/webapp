@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Taxi Meter 計程車計費器</title>
+<title>Taxi Meter</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -56,7 +56,7 @@
   .status-running { color: #aaa; }
   .status-paused { color: #ccaa33; }
   .gps-active { color: #aaa; }
-  .gps-sim { color: #ccaa33; }
+  .gps-error { color: #cc4444; }
   .app-version { font-size: 18px; color: #555; }
 
   /* LCD Panel */
@@ -170,6 +170,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-start {
     background: linear-gradient(135deg, #e0e0e0 0%, #bbb 100%);
     color: #111;
@@ -290,7 +291,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.0.0</span>
+    <span class="app-version">v1.2.0</span>
   </div>
 
   <div class="lcd-panel">
@@ -372,7 +373,7 @@ const R = {
 let status='idle', dist=0, elapsed=0, waitTime=0, speed=0, maxSpeed=0;
 let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
 let hist=[];
-let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, simRef=null, lastFare=null;
+let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, lastFare=null, gpsReady=false;
 const $=id=>document.getElementById(id);
 
 // ===== Wake lock =====
@@ -471,6 +472,7 @@ function updateUI(){
   const bs=$('btnStart'),bp=$('btnPause'),bt=$('btnStop');
   if(status==='idle'){
     bs.classList.remove('hidden'); bs.textContent='▶ 開始計費';
+    bs.disabled=!gpsReady;
     bp.classList.add('hidden'); bt.classList.add('hidden');
   } else if(status==='running'){
     bs.classList.add('hidden');
@@ -485,22 +487,30 @@ function updateUI(){
 
 function setGps(s){
   const e=$('gpsStatus');
-  e.className=s==='active'?'gps-active':s==='simulating'?'gps-sim':'';
-  e.textContent={waiting:'GPS: 等待中',active:'GPS: 定位中',simulating:'GPS: 模擬模式'}[s]||'GPS: 等待中';
+  e.className=s==='active'?'gps-active':s==='error'?'gps-error':'';
+  e.textContent={waiting:'GPS: 等待中',active:'GPS: 己定位',error:'GPS: 未定位'}[s]||'GPS: 等待中';
 }
 
-function startSim(){
-  setGps('simulating');
-  simRef=setInterval(()=>{
-    const b=25+Math.random()*20;
-    speed=Math.random()<0.15?0:Math.round(b);
-    if(speed<R.sTh)waitTime++;
-    dist+=(speed*1000)/3600;
-    updateUI();
-  },1000);
-}
-function stopG(){if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}if(simRef!==null){clearInterval(simRef);simRef=null}}
 function stopT(){if(timerRef){clearInterval(timerRef);timerRef=null}}
+
+function initGps(){
+  if(!navigator.geolocation){setGps('error');updateUI();return}
+  watchId=navigator.geolocation.watchPosition(
+    p=>{
+      gpsReady=true;setGps('active');
+      const{latitude:la,longitude:lo,speed:gs}=p.coords;
+      speed=gs!=null?Math.round(gs*3.6):0;
+      if(status==='running'){
+        if(speed<R.sTh)waitTime++;
+        if(lastPos){const d=hav(lastPos.lat,lastPos.lon,la,lo);if(d>3&&d<200)dist+=d}
+        lastPos={lat:la,lon:lo};
+      }
+      updateUI();
+    },
+    ()=>{gpsReady=false;setGps('error');updateUI()},
+    {enableHighAccuracy:true,maximumAge:2000,timeout:5000}
+  );
+}
 
 function startMeter(){
   status='running'; lastPos=null;
@@ -509,31 +519,48 @@ function startMeter(){
   requestWakeLock();
   startTS=Date.now()-pausedE*1000;
   timerRef=setInterval(()=>{elapsed=Math.floor((Date.now()-startTS)/1000);updateUI()},1000);
-  if(!navigator.geolocation){startSim();updateUI();return}
-  let gf=false;
-  watchId=navigator.geolocation.watchPosition(
-    p=>{setGps('active');const{latitude:la,longitude:lo,speed:gs}=p.coords;speed=gs!=null?Math.round(gs*3.6):0;if(speed<R.sTh)waitTime++;if(lastPos){const d=hav(lastPos.lat,lastPos.lon,la,lo);if(d>3&&d<200)dist+=d}lastPos={lat:la,lon:lo};updateUI()},
-    ()=>{if(!gf){gf=true;startSim()}},
-    {enableHighAccuracy:true,maximumAge:2000,timeout:5000}
-  );
   updateUI();
 }
 
-function onStart(){startMeter()}
-function onPause(){status='paused';pausedE=elapsed;stopG();stopT();playPauseSound();releaseWakeLock();updateUI()}
+function onStart(){if(!gpsReady)return;startMeter()}
+function onPause(){status='paused';pausedE=elapsed;stopT();playPauseSound();releaseWakeLock();updateUI()}
 function onReset(){
-  stopG();stopT();
+  stopT();
   playStopSound();
   releaseWakeLock();
   if(dist>0){
     const n=new Date();
     hist.push({fare:fare(),distance:dist,elapsed,waitTime,isNight,time:n.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
     renderHist();
+    saveTripFile(fare(),dist,elapsed,waitTime,maxSpeed,isNight,n);
   }
   status='idle';dist=0;elapsed=0;waitTime=0;speed=0;maxSpeed=0;lastPos=null;pausedE=0;
-  setGps('waiting');updateUI();
+  updateUI();
 }
 function toggleNight(){isNight=!isNight;updateUI()}
+
+function pad2(n){return String(n).padStart(2,'0')}
+
+function saveTripFile(f,d,e,w,ms,night,n){
+  const filename=`TAXI_${pad2(n.getMonth()+1)}${pad2(n.getDate())}-${pad2(n.getHours())}-${pad2(n.getMinutes())}.txt`;
+  const content=
+`計程車計費紀錄
+時間：${n.getFullYear()}/${pad2(n.getMonth()+1)}/${pad2(n.getDate())} ${pad2(n.getHours())}:${pad2(n.getMinutes())}
+車資：NT$${f.toLocaleString('en-US')}
+里程：${(d/1000).toFixed(2)} km
+行駛時間：${fmt(e)}
+等候時間：${fmt(w)}
+最高時速：${ms} km/h
+夜間加成：${night?'是':'否'}
+`;
+  const blob=new Blob([content],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('已儲存檔案：'+filename);
+}
 
 function renderHist(){
   $('historyList').innerHTML=hist.map(t=>`<div class="history-item"><span class="h-time">${t.time} ${t.isNight?'🌙':'☀️'}</span><span class="h-dist">${(t.distance/1000).toFixed(2)} km</span><span class="h-dur">${fmt(t.elapsed)}</span><span class="h-fare">$${t.fare.toLocaleString()}</span></div>`).join('');
@@ -541,6 +568,7 @@ function renderHist(){
 function clearHistory(){hist=[];renderHist();updateUI()}
 
 updateUI();
+initGps();
 </script>
 </body>
 </html>
