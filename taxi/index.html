@@ -100,16 +100,6 @@
     line-height: 1;
   }
 
-  .night-badge {
-    text-align: center;
-    margin-top: 8px;
-    font-size: 11px;
-    color: #3a2208;
-    font-weight: 600;
-    display: none;
-  }
-  .night-badge.visible { display: block; }
-
   /* Stats row */
   .stats-row {
     display: grid;
@@ -297,16 +287,15 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.3.3</span>
+    <span class="app-version">v1.4.0</span>
   </div>
 
   <div class="lcd-panel">
-    <div class="lcd-label">應付車資</div>
+    <div class="lcd-label" id="fareLabel">應付車資</div>
     <div class="fare-row">
       <span class="fare-currency">NT$</span>
       <span class="fare-digits" id="fareDisplay"></span>
     </div>
-    <div class="night-badge" id="nightBadge">🌙 夜間加成 +NT$20</div>
   </div>
 
   <div class="stats-row">
@@ -338,13 +327,6 @@
   </div>
 
   <div class="settings-box">
-    <div class="night-toggle">
-      <span class="night-toggle-label">🌙 夜間加成（23:00–06:00）</span>
-      <button class="toggle-track" id="nightToggle" onclick="toggleNight()">
-        <span class="toggle-thumb"></span>
-      </button>
-    </div>
-
     <div class="night-toggle">
       <span class="night-toggle-label">🔇 靜音</span>
       <button class="toggle-track" id="muteToggle" onclick="toggleMute()">
@@ -386,7 +368,8 @@ const R = {
 
 // ===== State =====
 let status='idle', dist=0, elapsed=0, waitTime=0, speed=0, maxSpeed=0;
-let isNight=(()=>{const h=new Date().getHours();return h>=23||h<6})();
+function computeNight(){const h=new Date().getHours();return h>=23||h<6}
+let isNight=computeNight();
 let hist=[];
 let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, lastFare=null, gpsReady=false, muted=false;
 function toggleMute(){muted=!muted;updateUI()}
@@ -465,9 +448,11 @@ function fare(){let f=R.baseFare;if(isNight)f+=R.nPlus;f+=Math.floor(Math.max(0,
 function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return h+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0')}
 
 function updateUI(){
+  isNight=computeNight();
   const f=fare();
   if(status==='running' && lastFare!==null && f>lastFare) playTickSound();
   lastFare=f;
+  $('fareLabel').textContent = isNight ? '應付車資 - 夜間加成' : '應付車資';
   $('fareDisplay').textContent = f.toLocaleString('en-US');
   $('distDisplay').textContent = (dist/1000).toFixed(2);
   $('timeDisplay').textContent = fmt(elapsed);
@@ -478,8 +463,6 @@ function updateUI(){
   $('waitDisplay').textContent=fmt(waitTime);
   $('waitFare').textContent='(+NT$'+Math.floor(waitTime/R.wUnit)*R.wRate+')';
 
-  $('nightBadge').classList.toggle('visible',isNight);
-  $('nightToggle').classList.toggle('on',isNight);
   $('wakeLockToggle').classList.toggle('on',wakeLockEnabled);
   $('muteToggle').classList.toggle('on',muted);
 
@@ -542,6 +525,7 @@ function startMeter(){
 function onStart(){if(!gpsReady)return;startMeter()}
 function onPause(){status='paused';pausedE=elapsed;stopT();playPauseSound();releaseWakeLock();updateUI()}
 function onReset(){
+  if(!confirm('確定要結束本次計費？')) return;
   stopT();
   playStopSound();
   releaseWakeLock();
@@ -554,7 +538,6 @@ function onReset(){
   status='idle';dist=0;elapsed=0;waitTime=0;speed=0;maxSpeed=0;lastPos=null;pausedE=0;
   updateUI();
 }
-function toggleNight(){isNight=!isNight;updateUI()}
 
 function pad2(n){return String(n).padStart(2,'0')}
 
@@ -582,7 +565,10 @@ function saveTripFile(f,d,e,w,ms,night,n){
 function renderHist(){
   $('historyList').innerHTML=hist.map(t=>`<div class="history-item"><span class="h-time">${t.time} ${t.isNight?'🌙':'☀️'}</span><span class="h-dist">${(t.distance/1000).toFixed(2)} km</span><span class="h-dur">${fmt(t.elapsed)}</span><span class="h-fare">$${t.fare.toLocaleString()}</span></div>`).join('');
 }
-function clearHistory(){hist=[];renderHist();updateUI()}
+function clearHistory(){
+  if(!confirm('確定要清除所有行程紀錄？')) return;
+  hist=[];renderHist();updateUI()
+}
 
 updateUI();
 initGps();
