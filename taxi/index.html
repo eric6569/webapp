@@ -297,7 +297,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.3.2</span>
+    <span class="app-version">v1.3.3</span>
   </div>
 
   <div class="lcd-panel">
@@ -519,7 +519,6 @@ function initGps(){
       const{latitude:la,longitude:lo,speed:gs}=p.coords;
       speed=gs!=null?Math.round(gs*3.6):0;
       if(status==='running'){
-        if(speed<R.sTh)waitTime++;
         if(lastPos){const d=hav(lastPos.lat,lastPos.lon,la,lo);if(d>3&&d<200)dist+=d}
         lastPos={lat:la,lon:lo};
       }
@@ -536,7 +535,7 @@ function startMeter(){
   playStartSound();
   requestWakeLock();
   startTS=Date.now()-pausedE*1000;
-  timerRef=setInterval(()=>{elapsed=Math.floor((Date.now()-startTS)/1000);updateUI()},1000);
+  timerRef=setInterval(()=>{elapsed=Math.floor((Date.now()-startTS)/1000);if(speed<R.sTh)waitTime++;updateUI()},1000);
   updateUI();
 }
 
