@@ -107,8 +107,8 @@
 
   @keyframes fareFloatUp {
     0% { opacity: 0; transform: translateY(-50%); }
-    15% { opacity: 1; transform: translateY(calc(-50% - 6px)); }
-    100% { opacity: 0; transform: translateY(calc(-50% - 32px)); }
+    15% { opacity: 1; transform: translateY(calc(-50% - 10px)); }
+    100% { opacity: 0; transform: translateY(calc(-50% - 60px)); }
   }
   .fare-popup {
     position: absolute;
@@ -116,11 +116,11 @@
     top: 50%;
     color: #cc4444;
     font-weight: 800;
-    font-size: 18px;
+    font-size: 32px;
     text-shadow: 0 2px 6px rgba(0,0,0,0.3);
     pointer-events: none;
     white-space: nowrap;
-    animation: fareFloatUp 2.5s ease-out forwards;
+    animation: fareFloatUp 3.5s ease-out forwards;
   }
 
   /* Stats row */
@@ -540,7 +540,7 @@ function playFareEffect(delta){
   fd.classList.remove('pulse'); void fd.offsetWidth; fd.classList.add('pulse');
   const popup=document.createElement('span');
   popup.className='fare-popup';
-  popup.textContent='+NT$'+delta;
+  popup.textContent='+'+delta;
   popup.addEventListener('animationend',()=>popup.remove());
   document.querySelector('.lcd-panel').appendChild(popup);
 }
