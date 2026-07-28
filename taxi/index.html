@@ -275,6 +275,55 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
+
+  /* Custom modal (replaces native confirm/alert to avoid browser origin banner) */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+  }
+  .modal-box {
+    width: 100%;
+    max-width: 320px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 24px 20px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+  .modal-message {
+    color: #ddd;
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: center;
+    margin-bottom: 20px;
+    white-space: pre-line;
+  }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .modal-btn-ok {
+    background: linear-gradient(135deg, #e0e0e0 0%, #bbb 100%);
+    color: #111;
+  }
+  .modal-btn-cancel {
+    background: transparent;
+    border: 2px solid #555;
+    color: #aaa;
+  }
 </style>
 </head>
 <body>
@@ -287,7 +336,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.4.0</span>
+    <span class="app-version">v1.4.1</span>
   </div>
 
   <div class="lcd-panel">
@@ -357,6 +406,16 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-message" id="modalMessage"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel hidden" id="modalCancel">取消</button>
+      <button class="modal-btn modal-btn-ok" id="modalOk">確定</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== Fare rules =====
 const R = {
@@ -374,6 +433,18 @@ let hist=[];
 let lastPos=null, watchId=null, timerRef=null, startTS=null, pausedE=0, lastFare=null, gpsReady=false, muted=false;
 function toggleMute(){muted=!muted;updateUI()}
 const $=id=>document.getElementById(id);
+
+// ===== Custom modal (native confirm/alert show the page URL, so we roll our own) =====
+function showModal(message,{cancel=false}={}){
+  return new Promise(resolve=>{
+    $('modalMessage').textContent=message;
+    const overlay=$('modalOverlay'),ok=$('modalOk'),cancelBtn=$('modalCancel');
+    cancelBtn.classList.toggle('hidden',!cancel);
+    overlay.classList.remove('hidden');
+    ok.onclick=()=>{overlay.classList.add('hidden');resolve(true)};
+    cancelBtn.onclick=()=>{overlay.classList.add('hidden');resolve(false)};
+  });
+}
 
 // ===== Wake lock =====
 let wakeLock=null, wakeLockEnabled=true;
@@ -524,8 +595,8 @@ function startMeter(){
 
 function onStart(){if(!gpsReady)return;startMeter()}
 function onPause(){status='paused';pausedE=elapsed;stopT();playPauseSound();releaseWakeLock();updateUI()}
-function onReset(){
-  if(!confirm('確定要結束本次計費？')) return;
+async function onReset(){
+  if(!await showModal('確定要結束本次計費？',{cancel:true})) return;
   stopT();
   playStopSound();
   releaseWakeLock();
@@ -559,14 +630,14 @@ function saveTripFile(f,d,e,w,ms,night,n){
   a.href=url;a.download=filename;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  alert('已儲存檔案：'+filename);
+  showModal('已儲存檔案：'+filename);
 }
 
 function renderHist(){
   $('historyList').innerHTML=hist.map(t=>`<div class="history-item"><span class="h-time">${t.time} ${t.isNight?'🌙':'☀️'}</span><span class="h-dist">${(t.distance/1000).toFixed(2)} km</span><span class="h-dur">${fmt(t.elapsed)}</span><span class="h-fare">$${t.fare.toLocaleString()}</span></div>`).join('');
 }
-function clearHistory(){
-  if(!confirm('確定要清除所有行程紀錄？')) return;
+async function clearHistory(){
+  if(!await showModal('確定要清除所有行程紀錄？',{cancel:true})) return;
   hist=[];renderHist();updateUI()
 }
 
