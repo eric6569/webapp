@@ -53,10 +53,11 @@
     animation: pulse 1.5s infinite;
   }
   .status-dot.paused { background: #ccaa33; }
+  .status-dot.gps-ready { background: #66dd44; }
+  .status-dot.gps-locating { background: #ccaa33; animation: pulse 1.5s infinite; }
+  .status-dot.gps-error { background: #cc4444; }
   .status-running { color: #aaa; }
   .status-paused { color: #ccaa33; }
-  .gps-active { color: #aaa; }
-  .gps-error { color: #cc4444; }
   .app-version { font-size: 18px; color: #555; }
 
   /* LCD Panel */
@@ -106,21 +107,21 @@
   .fare-digits.pulse { animation: farePulse 0.35s ease-out; }
 
   @keyframes fareFloatUp {
-    0% { opacity: 0; transform: translateY(-50%); }
-    15% { opacity: 1; transform: translateY(calc(-50% - 10px)); }
-    100% { opacity: 0; transform: translateY(calc(-50% - 60px)); }
+    0% { opacity: 0; transform: translateY(0); }
+    15% { opacity: 1; transform: translateY(-10px); }
+    100% { opacity: 0; transform: translateY(-90px); }
   }
   .fare-popup {
     position: absolute;
     right: 16px;
-    top: 50%;
+    bottom: 8px;
     color: #cc4444;
     font-weight: 800;
     font-size: 32px;
     text-shadow: 0 2px 6px rgba(0,0,0,0.3);
     pointer-events: none;
     white-space: nowrap;
-    animation: fareFloatUp 3.5s ease-out forwards;
+    animation: fareFloatUp 4s ease-out forwards;
   }
 
   /* Stats row */
@@ -357,9 +358,12 @@
       <span id="statusText">待機</span>
     </span>
     <span style="color:#444">|</span>
-    <span id="gpsStatus">GPS: 等待中</span>
+    <span id="gpsStatus">
+      <span class="status-dot" id="gpsDot"></span>
+      <span>GPS</span>
+    </span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.2.0</span>
+    <span class="app-version">v1.3.1</span>
   </div>
 
   <div class="lcd-panel">
@@ -591,15 +595,15 @@ function updateUI(){
 }
 
 function setGps(s){
-  const e=$('gpsStatus');
-  e.className=s==='active'?'gps-active':s==='error'?'gps-error':'';
-  e.textContent={waiting:'GPS: 等待中',active:'GPS: 己定位',error:'GPS: 未定位'}[s]||'GPS: 等待中';
+  const dot=$('gpsDot');
+  dot.className='status-dot'+(s==='active'?' gps-ready':s==='waiting'?' gps-locating':s==='error'?' gps-error':'');
 }
 
 function stopT(){if(timerRef){clearInterval(timerRef);timerRef=null}}
 
 function initGps(){
-  if(!navigator.geolocation){setGps('error');updateUI();return}
+  if(!navigator.geolocation){setGps('unsupported');updateUI();return}
+  setGps('waiting');
   watchId=navigator.geolocation.watchPosition(
     p=>{
       gpsReady=true;setGps('active');
