@@ -49,15 +49,12 @@
   }
   .status-dot.running {
     background: #66dd44;
-    box-shadow: 0 0 10px #66dd44;
     animation: pulse 1.5s infinite;
   }
-  .status-dot.paused { background: #ccaa33; }
+  .status-dot.paused { background: #cc4444; animation: pulse 1.5s infinite; }
   .status-dot.gps-ready { background: #66dd44; }
   .status-dot.gps-locating { background: #ccaa33; animation: pulse 1.5s infinite; }
   .status-dot.gps-error { background: #cc4444; }
-  .status-running { color: #aaa; }
-  .status-paused { color: #ccaa33; }
   .app-version { font-size: 18px; color: #555; }
 
   /* LCD Panel */
@@ -354,7 +351,7 @@
   <div class="status-bar">
     <span id="statusLabel">
       <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">待機</span>
+      <span>計費</span>
     </span>
     <span style="color:#444">|</span>
     <span id="gpsStatus">
@@ -574,8 +571,6 @@ function updateUI(){
   $('muteToggle').classList.toggle('on',muted);
 
   $('statusDot').className='status-dot'+(status==='running'?' running':status==='paused'?' paused':'');
-  $('statusLabel').className=status==='running'?'status-running':status==='paused'?'status-paused':'';
-  $('statusText').textContent=status==='idle'?'待機':status==='running'?'計費中':'暫停';
 
   const bs=$('btnStart'),bp=$('btnPause'),bt=$('btnStop');
   if(status==='idle'){
