@@ -336,7 +336,7 @@
     <span style="color:#444">|</span>
     <span id="gpsStatus">GPS: 等待中</span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.4.1</span>
+    <span class="app-version">v1.1.0</span>
   </div>
 
   <div class="lcd-panel">
@@ -596,7 +596,7 @@ function startMeter(){
 function onStart(){if(!gpsReady)return;startMeter()}
 function onPause(){status='paused';pausedE=elapsed;stopT();playPauseSound();releaseWakeLock();updateUI()}
 async function onReset(){
-  if(!await showModal('確定要結束本次計費？',{cancel:true})) return;
+  if(!await showModal('結束本次計費？',{cancel:true})) return;
   stopT();
   playStopSound();
   releaseWakeLock();
@@ -615,11 +615,11 @@ function pad2(n){return String(n).padStart(2,'0')}
 function saveTripFile(f,d,e,w,ms,night,n){
   const filename=`TAXI_${pad2(n.getMonth()+1)}${pad2(n.getDate())}-${pad2(n.getHours())}-${pad2(n.getMinutes())}.txt`;
   const content=
-`計程車計費紀錄
+`計費紀錄
 時間：${n.getFullYear()}/${pad2(n.getMonth()+1)}/${pad2(n.getDate())} ${pad2(n.getHours())}:${pad2(n.getMinutes())}
 車資：NT$${f.toLocaleString('en-US')}
 里程：${(d/1000).toFixed(2)} km
-行駛時間：${fmt(e)}
+租賃時間：${fmt(e)}
 等候時間：${fmt(w)}
 最高時速：${ms} km/h
 夜間加成：${night?'是':'否'}
@@ -637,7 +637,7 @@ function renderHist(){
   $('historyList').innerHTML=hist.map(t=>`<div class="history-item"><span class="h-time">${t.time} ${t.isNight?'🌙':'☀️'}</span><span class="h-dist">${(t.distance/1000).toFixed(2)} km</span><span class="h-dur">${fmt(t.elapsed)}</span><span class="h-fare">$${t.fare.toLocaleString()}</span></div>`).join('');
 }
 async function clearHistory(){
-  if(!await showModal('確定要清除所有行程紀錄？',{cancel:true})) return;
+  if(!await showModal('清除所有行程紀錄？',{cancel:true})) return;
   hist=[];renderHist();updateUI()
 }
 
