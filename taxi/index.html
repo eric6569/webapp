@@ -7,6 +7,8 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html { overscroll-behavior-y: none; }
+
   body {
     min-height: 100vh;
     background: #000;
@@ -353,7 +355,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.3.3</span>
+    <span class="app-version">v1.3.5</span>
   </div>
 
   <div class="lcd-panel">
@@ -489,7 +491,7 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible' && status==='running' && wakeLockEnabled && !wakeLock) requestWakeLock();
 });
 window.addEventListener('beforeunload',e=>{
-  if(status!=='idle'){e.preventDefault();e.returnValue=''}
+  e.preventDefault();e.returnValue='';
 });
 
 // ===== Sound effects =====
