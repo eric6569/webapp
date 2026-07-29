@@ -352,7 +352,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.3.0</span>
+    <span class="app-version">v1.3.2</span>
   </div>
 
   <div class="lcd-panel">
@@ -586,9 +586,7 @@ function setGps(s){
 
 function stopT(){if(timerRef){clearInterval(timerRef);timerRef=null}}
 
-function initGps(){
-  if(!navigator.geolocation){setGps('unsupported');updateUI();return}
-  setGps('waiting');
+function startWatch(){
   watchId=navigator.geolocation.watchPosition(
     p=>{
       gpsReady=true;setGps('active');
@@ -600,9 +598,21 @@ function initGps(){
       }
       updateUI();
     },
-    ()=>{gpsReady=false;setGps('error');updateUI()},
-    {enableHighAccuracy:true,maximumAge:2000,timeout:5000}
+    err=>{
+      gpsReady=false;setGps('error');updateUI();
+      if(err.code!==1){ // not PERMISSION_DENIED — worth retrying (timeout/unavailable can resolve itself)
+        navigator.geolocation.clearWatch(watchId);
+        setTimeout(()=>{setGps('waiting');updateUI();startWatch()},3000);
+      }
+    },
+    {enableHighAccuracy:true,maximumAge:2000,timeout:20000}
   );
+}
+
+function initGps(){
+  if(!navigator.geolocation){setGps('unsupported');updateUI();return}
+  setGps('waiting');
+  startWatch();
 }
 
 function startMeter(){
