@@ -352,7 +352,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">v1.2.5</span>
+    <span class="app-version">v1.3.0</span>
   </div>
 
   <div class="lcd-panel">
@@ -618,7 +618,7 @@ function startMeter(){
 function onStart(){if(!gpsReady)return;startMeter()}
 function onPause(){status='paused';pausedE=elapsed;stopT();playPauseSound();releaseWakeLock();updateUI()}
 async function onReset(){
-  if(!await showModal('結束本次計費？',{cancel:true})) return;
+  if(!await showModal('結束本次計費，匯出紀錄？',{cancel:true})) return;
   stopT();
   playStopSound();
   releaseWakeLock();
@@ -636,13 +636,17 @@ function pad2(n){return String(n).padStart(2,'0')}
 
 function saveTripFile(f,d,e,w,ms,night,n){
   const filename=`TAXI_${pad2(n.getMonth()+1)}${pad2(n.getDate())}-${pad2(n.getHours())}-${pad2(n.getMinutes())}.txt`;
+  const distFee=Math.floor(Math.max(0,d-R.baseDist)/R.dUnit)*R.dRate;
+  const waitFee=Math.floor(w/R.wUnit)*R.wRate;
   const content=
 `計費紀錄
 時間：${n.getFullYear()}/${pad2(n.getMonth()+1)}/${pad2(n.getDate())} ${pad2(n.getHours())}:${pad2(n.getMinutes())}
 車資：NT$${f.toLocaleString('en-US')}
+里程費用：NT$${distFee}
+等候費用：NT$${waitFee}
 里程：${(d/1000).toFixed(2)} km
-租賃時間：${fmt(e)}
 等候時間：${fmt(w)}
+租賃時間：${fmt(e)}
 最高時速：${ms} km/h
 夜間加成：${night?'是':'否'}
 `;
@@ -652,7 +656,6 @@ function saveTripFile(f,d,e,w,ms,night,n){
   a.href=url;a.download=filename;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showModal('已儲存檔案：'+filename);
 }
 
 function renderHist(){
