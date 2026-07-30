@@ -357,7 +357,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">beta.1</span>
+    <span class="app-version">beta.2</span>
   </div>
 
   <div class="lcd-panel">
@@ -613,7 +613,7 @@ function startWatch(){
         setTimeout(()=>{setGps('waiting');updateUI();startWatch()},3000);
       }
     },
-    {enableHighAccuracy:true,maximumAge:2000,timeout:5000}
+    {enableHighAccuracy:true,maximumAge:2000,timeout:20000}
   );
 }
 
