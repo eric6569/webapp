@@ -253,6 +253,24 @@
     margin-bottom: 4px;
     font-size: 12px;
   }
+  .fare-rules summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fare-rules summary::-webkit-details-marker { display: none; }
+  .fare-rules summary::after {
+    content: '▸';
+    font-size: 11px;
+    color: #666;
+    transition: transform 0.15s ease;
+  }
+  .fare-rules[open] summary::after { transform: rotate(90deg); }
+
+  .import-box { width: 100%; margin-bottom: 16px; }
 
   .history { width: 100%; margin-bottom: 16px; }
   .history-title {
@@ -357,7 +375,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">beta.2</span>
+    <span class="app-version">beta.3</span>
   </div>
 
   <div class="lcd-panel">
@@ -412,12 +430,17 @@
     </div>
   </div>
 
-  <div class="fare-rules">
-    <div class="fare-rules-title">費率說明</div>
+  <details class="fare-rules">
+    <summary class="fare-rules-title">費率說明</summary>
     <div>起步價 NT$85（1.25 km 內）</div>
     <div>續程每 200m 跳 NT$5</div>
     <div>時速 5 km/h 以下，每 60 秒跳 NT$5</div>
     <div>夜間加成（23:00–06:00）+NT$20</div>
+  </details>
+
+  <div class="import-box">
+    <input type="file" id="importFileInput" accept=".txt" multiple class="hidden" onchange="onImportFiles(event)">
+    <button class="btn-clear" onclick="$('importFileInput').click()">匯入紀錄</button>
   </div>
 
   <div class="history hidden" id="historySection">
@@ -673,6 +696,58 @@ function saveTripFile(f,d,e,w,ms,night,n){
   const a=document.createElement('a');
   a.href=url;a.download=filename;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function parseTripText(text){
+  text = text.replace(/^﻿/, '');
+  const fareM = text.match(/車資：NT\$([\d,]+)/);
+  const distM = text.match(/里程：([\d.]+)\s*km/);
+  const dateM = text.match(/時間：(\d{4}\/\d{2}\/\d{2})/);
+  return {
+    fare: fareM ? parseInt(fareM[1].replace(/,/g,''), 10) : 0,
+    distance: distM ? parseFloat(distM[1]) : 0,
+    date: dateM ? dateM[1] : null,
+  };
+}
+
+function readFileAsText(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+async function onImportFiles(e){
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if(files.length === 0) return;
+
+  const parsed = (await Promise.all(files.map(readFileAsText))).map(parseTripText);
+
+  const totalDays = new Set(parsed.map(p => p.date).filter(Boolean)).size;
+  const totalFare = parsed.reduce((s, p) => s + p.fare, 0);
+  const totalDist = parsed.reduce((s, p) => s + p.distance, 0);
+
+  saveSummaryFile(totalDays, totalFare, totalDist);
+}
+
+function saveSummaryFile(days, fare, dist){
+  const n = new Date();
+  const filename = `TAXI_SUMMARY_${pad2(n.getMonth()+1)}${pad2(n.getDate())}-${pad2(n.getHours())}-${pad2(n.getMinutes())}.txt`;
+  const content =
+`紀錄彙總
+總天數：${days} 天
+總車資：NT$${fare.toLocaleString('en-US')}
+總行駛里程：${dist.toFixed(2)} km
+`;
+  const blob = new Blob(['﻿'+content], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
