@@ -237,12 +237,8 @@
   .toggle-track.on .toggle-thumb { left: 25px; }
 
   .fare-rules {
-    width: 100%;
-    padding: 14px 16px;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 10px;
-    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-top: 1px solid #333;
     font-size: 11px;
     color: #777;
     line-height: 1.8;
@@ -270,7 +266,35 @@
   }
   .fare-rules[open] summary::after { transform: rotate(90deg); }
 
-  .import-box { width: 100%; margin-bottom: 16px; }
+  .import-box {
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .import-box-title {
+    font-size: 13px;
+    color: #aaa;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .import-box-actions { display: flex; gap: 8px; }
+  .import-box-actions .btn-clear {
+    width: auto;
+    flex: 1;
+    height: 65px;
+    margin-top: 0;
+    padding-left: 40px;
+    padding-right: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .import-box-actions .btn-icon { font-size: 22px; }
 
   .history { width: 100%; margin-bottom: 16px; }
   .history-title {
@@ -375,7 +399,7 @@
       <span>GPS</span>
     </span>
     <span style="color:#444">|</span>
-    <span class="app-version">beta.3</span>
+    <span class="app-version">beta.5</span>
   </div>
 
   <div class="lcd-panel">
@@ -415,6 +439,16 @@
   </div>
 
   <div class="settings-box">
+    <div class="import-box">
+      <div class="import-box-title">行程</div>
+      <div class="import-box-actions">
+        <input type="file" id="importFileInput" accept=".txt" multiple class="hidden" onchange="onImportFiles(event)">
+        <button class="btn-clear" onclick="$('importFileInput').click()"><span class="btn-icon">📥</span>紀錄試算</button>
+        <input type="file" id="openFileInput" accept=".txt" class="hidden" onchange="onOpenFile(event)">
+        <button class="btn-clear" onclick="$('openFileInput').click()"><span class="btn-icon">📂</span>開啟記錄</button>
+      </div>
+    </div>
+
     <div class="night-toggle">
       <span class="night-toggle-label">🔇 靜音</span>
       <button class="toggle-track" id="muteToggle" onclick="toggleMute()">
@@ -428,19 +462,14 @@
         <span class="toggle-thumb"></span>
       </button>
     </div>
-  </div>
 
-  <details class="fare-rules">
-    <summary class="fare-rules-title">費率說明</summary>
-    <div>起步價 NT$85（1.25 km 內）</div>
-    <div>續程每 200m 跳 NT$5</div>
-    <div>時速 5 km/h 以下，每 60 秒跳 NT$5</div>
-    <div>夜間加成（23:00–06:00）+NT$20</div>
-  </details>
-
-  <div class="import-box">
-    <input type="file" id="importFileInput" accept=".txt" multiple class="hidden" onchange="onImportFiles(event)">
-    <button class="btn-clear" onclick="$('importFileInput').click()">匯入紀錄</button>
+    <details class="fare-rules">
+      <summary class="fare-rules-title">費率說明</summary>
+      <div>起步價 NT$85（1.25 km 內）</div>
+      <div>續程每 200m 跳 NT$5</div>
+      <div>時速 5 km/h 以下，每 60 秒跳 NT$5</div>
+      <div>夜間加成（23:00–06:00）+NT$20</div>
+    </details>
   </div>
 
   <div class="history hidden" id="historySection">
@@ -732,6 +761,14 @@ async function onImportFiles(e){
   const totalDist = parsed.reduce((s, p) => s + p.distance, 0);
 
   saveSummaryFile(totalDays, totalFare, totalDist);
+}
+
+async function onOpenFile(e){
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const text = (await readFileAsText(file)).replace(/^﻿/, '');
+  showModal(text);
 }
 
 function saveSummaryFile(days, fare, dist){
