@@ -74,6 +74,11 @@ html, body {
   margin-left: 1em;
 }
 
+.time-row.hidden,
+.date-row.hidden {
+  display: none;
+}
+
 .blackout-overlay {
   position: fixed;
   inset: 0;
