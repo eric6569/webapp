@@ -248,7 +248,9 @@ const OledGuard = (() => {
     const halfWPercent = (metricsEl.offsetWidth / 2 / window.innerWidth) * 100;
     const halfHPercent = (metricsEl.offsetHeight / 2 / window.innerHeight) * 100;
     const clamp = (halfPercent) => {
-      const min = Math.min(45, Math.max(2, halfPercent));
+      // 只夾在 0~50 之間:內容真的比螢幕還寬/高時退回置中(min=max=50,不漂移),
+      // 絕不能把 min 硬夾小,那樣反而會允許超出安全邊界的位置
+      const min = Math.max(0, Math.min(50, halfPercent));
       return { min, max: 100 - min };
     };
     rangeX = clamp(halfWPercent);
