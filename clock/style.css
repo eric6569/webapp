@@ -69,6 +69,18 @@ html, body {
   display: none;
 }
 
+.text-metrics {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+  font-size: var(--font-size);
+  font-weight: 200;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .blackout-overlay {
   position: fixed;
   inset: 0;
@@ -126,11 +138,6 @@ html, body {
 .settings-box label .value {
   min-width: 3.5em;
   text-align: right;
-}
-
-.settings-note {
-  opacity: 0.6;
-  margin: 4px 0 16px;
 }
 
 .dialog-actions {

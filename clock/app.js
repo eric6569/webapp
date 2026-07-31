@@ -8,7 +8,7 @@ const Settings = (() => {
     brightness: 100,
     timeSeconds: 20,
     dateSeconds: 10,
-    fontSizeVw: 16,
+    fontSizeVw: 10,
     driftIntervalSec: 90,
     blackoutIntervalMin: 30,
     blackoutDurationSec: 10,
@@ -232,25 +232,37 @@ const ClockCore = (() => {
 })();
 
 const OledGuard = (() => {
-  // 25%~75%:在「大範圍漂移」與「避免文字被裁到螢幕外」之間取的安全區間
-  const POSITION_MIN = 25;
-  const POSITION_MAX = 75;
   const colors = ['var(--color-1)', 'var(--color-2)', 'var(--color-3)'];
 
-  let container, overlay;
+  let container, overlay, metricsEl;
   let colorIndex = 0;
   let blackoutActive = false;
   let blackoutDurationMs;
   let wakeLock = null;
+  let rangeX = { min: 25, max: 75 };
+  let rangeY = { min: 25, max: 75 };
 
-  function randomPositionPercent() {
-    return Math.random() * (POSITION_MAX - POSITION_MIN) + POSITION_MIN;
+  // 用隱藏的量測元素(內容是最長的日期格式 "00-00-SUN")算出目前字體大小實際會佔多寬/多高,
+  // 換算成安全漂移範圍,避免字體變大或日期字串比時間長時把文字擠出螢幕外
+  function updateSafeRange() {
+    const halfWPercent = (metricsEl.offsetWidth / 2 / window.innerWidth) * 100;
+    const halfHPercent = (metricsEl.offsetHeight / 2 / window.innerHeight) * 100;
+    const clamp = (halfPercent) => {
+      const min = Math.min(45, Math.max(2, halfPercent));
+      return { min, max: 100 - min };
+    };
+    rangeX = clamp(halfWPercent);
+    rangeY = clamp(halfHPercent);
+  }
+
+  function randomPositionPercent(range) {
+    return Math.random() * (range.max - range.min) + range.min;
   }
 
   function drift() {
     if (blackoutActive) return;
-    container.style.top = `${randomPositionPercent()}%`;
-    container.style.left = `${randomPositionPercent()}%`;
+    container.style.top = `${randomPositionPercent(rangeY)}%`;
+    container.style.left = `${randomPositionPercent(rangeX)}%`;
     colorIndex = (colorIndex + 1) % colors.length;
     container.style.color = colors[colorIndex];
   }
@@ -311,6 +323,10 @@ const OledGuard = (() => {
 
     container = document.getElementById('clock-container');
     overlay = document.getElementById('blackout-overlay');
+    metricsEl = document.getElementById('text-metrics');
+    updateSafeRange();
+    window.addEventListener('resize', updateSafeRange);
+
     startDrift(settings.driftIntervalSec * 1000);
     scheduleBlackout(settings.blackoutIntervalMin * 60 * 1000);
     requestWakeLock();
