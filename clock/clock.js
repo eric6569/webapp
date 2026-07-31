@@ -1,10 +1,10 @@
 const ClockCore = (() => {
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   // 30 秒一個循環,一分鐘內恰好輪替兩次:時間 20 秒、日期/星期 10 秒
   const CYCLE_SECONDS = 30;
   const TIME_DISPLAY_SECONDS = 20;
 
-  let hhEl, mmEl, dateEl, weekdayEl, timeRowEl, dateRowEl;
+  let hhEl, mmEl, dateEl, timeRowEl, dateRowEl;
   let lastHH = null;
   let lastMM = null;
   let lastDateKey = null;
@@ -39,8 +39,7 @@ const ClockCore = (() => {
 
     const dateKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
     if (dateKey !== lastDateKey) {
-      dateEl.textContent = `${pad(now.getMonth() + 1)} - ${pad(now.getDate())}`;
-      weekdayEl.textContent = weekdays[now.getDay()];
+      dateEl.textContent = `${pad(now.getMonth() + 1)} - ${pad(now.getDate())} - ${weekdays[now.getDay()]}`;
       lastDateKey = dateKey;
     }
 
@@ -56,7 +55,6 @@ const ClockCore = (() => {
     hhEl = document.getElementById('hh');
     mmEl = document.getElementById('mm');
     dateEl = document.getElementById('date-str');
-    weekdayEl = document.getElementById('weekday-str');
     timeRowEl = document.querySelector('.time-row');
     dateRowEl = document.querySelector('.date-row');
     tick();

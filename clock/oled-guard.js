@@ -5,7 +5,7 @@ const OledGuard = (() => {
   // 25%~75%:在「大範圍漂移」與「避免文字被裁到螢幕外」之間取的安全區間
   const POSITION_MIN = 25;
   const POSITION_MAX = 75;
-  const colors = ['var(--color-1)', 'var(--color-2)', 'var(--color-3)', 'var(--color-4)', 'var(--color-5)'];
+  const colors = ['var(--color-1)', 'var(--color-2)', 'var(--color-3)'];
 
   let container, overlay;
   let colorIndex = 0;

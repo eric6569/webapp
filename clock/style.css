@@ -1,9 +1,7 @@
 :root {
-  --color-1: #4a1414; /* 暗紅 */
-  --color-2: #4a3d14; /* 暗黃 */
+  --color-1: #464646; /* 暗白 */
+  --color-2: #4a4438; /* 暗米黃 */
   --color-3: #14454a; /* 暗青 */
-  --color-4: #3a144a; /* 暗紫 */
-  --color-5: #383838; /* 深灰 */
 }
 
 * {
@@ -34,7 +32,7 @@ html, body {
   transform: translate(-50%, -50%);
   /* 位置與顏色都用 transition 平滑過渡,避免漂移/換色時畫面跳動 */
   transition: top 1.5s ease, left 1.5s ease, color 1.5s ease;
-  color: var(--color-5);
+  color: var(--color-1);
   text-align: center;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   user-select: none;
@@ -63,15 +61,10 @@ html, body {
 }
 
 .date-row {
-  font-size: 2.5vw;
+  font-size: 16vw;
   font-weight: 200;
-  margin-top: 1.5vh;
-  letter-spacing: 0.15em;
-  opacity: 0.8;
-}
-
-.date-row span + span {
-  margin-left: 1em;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .time-row.hidden,
