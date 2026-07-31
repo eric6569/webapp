@@ -1,8 +1,8 @@
 const ClockCore = (() => {
   const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-  // 30 秒一個循環,一分鐘內恰好輪替兩次:時間 20 秒、日期/星期 10 秒
-  const CYCLE_SECONDS = 30;
-  const TIME_DISPLAY_SECONDS = 20;
+  // 由設定值決定:一個循環 = 時間顯示秒數 + 日期顯示秒數
+  let CYCLE_SECONDS;
+  let TIME_DISPLAY_SECONDS;
 
   let hhEl, mmEl, dateEl, timeRowEl, dateRowEl;
   let lastHH = null;
@@ -39,7 +39,7 @@ const ClockCore = (() => {
 
     const dateKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
     if (dateKey !== lastDateKey) {
-      dateEl.textContent = `${pad(now.getMonth() + 1)} - ${pad(now.getDate())} - ${weekdays[now.getDay()]}`;
+      dateEl.textContent = `${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${weekdays[now.getDay()]}`;
       lastDateKey = dateKey;
     }
 
@@ -52,6 +52,11 @@ const ClockCore = (() => {
   }
 
   function start() {
+    const settings = Settings.load();
+    TIME_DISPLAY_SECONDS = settings.timeSeconds;
+    CYCLE_SECONDS = settings.timeSeconds + settings.dateSeconds;
+    document.documentElement.style.setProperty('--font-size', `${settings.fontSizeVw}vw`);
+
     hhEl = document.getElementById('hh');
     mmEl = document.getElementById('mm');
     dateEl = document.getElementById('date-str');
