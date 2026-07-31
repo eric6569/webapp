@@ -5,6 +5,7 @@ const ASSETS = [
   './style.css',
   './clock.js',
   './oled-guard.js',
+  './settings.js',
   './app.js',
   './manifest.json',
   './icon.svg',

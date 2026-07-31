@@ -2,6 +2,8 @@
   --color-1: #464646; /* 暗白 */
   --color-2: #4a4438; /* 暗米黃 */
   --color-3: #14454a; /* 暗青 */
+  --font-size: 16vw;
+  --brightness: 1;
 }
 
 * {
@@ -33,14 +35,16 @@ html, body {
   /* 位置與顏色都用 transition 平滑過渡,避免漂移/換色時畫面跳動 */
   transition: top 1.5s ease, left 1.5s ease, color 1.5s ease;
   color: var(--color-1);
+  filter: brightness(var(--brightness));
   text-align: center;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   user-select: none;
   white-space: nowrap;
 }
 
-.time-row {
-  font-size: 16vw;
+.time-row,
+.date-row {
+  font-size: var(--font-size);
   font-weight: 200;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -60,13 +64,6 @@ html, body {
   opacity: 0.6;
 }
 
-.date-row {
-  font-size: 16vw;
-  font-weight: 200;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-
 .time-row.hidden,
 .date-row.hidden {
   display: none;
@@ -84,4 +81,70 @@ html, body {
 
 .blackout-overlay.active {
   opacity: 1;
+}
+
+.tap-confirm,
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.tap-confirm.hidden,
+.settings-panel.hidden {
+  display: none;
+}
+
+.dialog-box {
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px 28px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  color: #ccc;
+  font-size: 14px;
+  text-align: center;
+}
+
+.settings-box {
+  text-align: left;
+}
+
+.settings-box label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.settings-box label .value {
+  min-width: 3.5em;
+  text-align: right;
+}
+
+.settings-note {
+  opacity: 0.6;
+  margin: 4px 0 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.dialog-actions button {
+  background: #222;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
 }
